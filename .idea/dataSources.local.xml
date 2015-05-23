@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="dataSourceStorageLocal">
+    <data-source name="H2 - sicarius_actions" uuid="dc5f245f-8bed-47c8-8270-fcf50fe4710c">
+      <secret-storage>master_key</secret-storage>
+      <schema-pattern>SICARIUS_ACTIONS.*</schema-pattern>
+      <default-schemas>SICARIUS_ACTIONS.*</default-schemas>
+    </data-source>
+  </component>
+</project>
