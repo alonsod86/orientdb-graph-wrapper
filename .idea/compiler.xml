@@ -23,12 +23,10 @@
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
         <module name="FSOrientdbInterface" />
-        <module name="orientDBFrogak" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="FSOrientdbInterface" target="1.5" />
-      <module name="orientDBFrogak" target="1.5" />
     </bytecodeTargetLevel>
   </component>
 </project>

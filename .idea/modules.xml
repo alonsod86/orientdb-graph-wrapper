@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/FSOrientdbInterface.iml" filepath="$PROJECT_DIR$/FSOrientdbInterface.iml" />
-      <module fileurl="file://$PROJECT_DIR$/orientDBFrogak.iml" filepath="$PROJECT_DIR$/orientDBFrogak.iml" />
     </modules>
   </component>
 </project>
