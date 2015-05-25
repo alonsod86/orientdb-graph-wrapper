@@ -13,15 +13,13 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertexType;
 public class DB {
     // Instance to transactional or non transactional graph database
     private OrientBaseGraph graphDB;
-    // Instance to class schema
-    private Schema schema;
 
     public DB(OrientBaseGraph graph) {
         this.graphDB = graph;
     }
 
-    public Schema getSchema(String schemaName) {
-        return new Schema(schemaName, graphDB);
+    public Collection getSchema(String schemaName) {
+        return new Collection(schemaName, graphDB);
     }
 
     /**

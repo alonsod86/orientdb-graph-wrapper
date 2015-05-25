@@ -70,7 +70,7 @@ public class UnitTests {
     @Test
     public void testExistNode() throws IOException {
         DB db = g.getDB();
-        Schema sc = db.getSchema(TEST_CLASS);
+        Collection sc = db.getSchema(TEST_CLASS);
         // create index for searching
         sc.createIndex(OType.INTEGER, TEST_PKEY);
         sc.createNode(new Pk(TEST_PKEY, 1));
@@ -80,7 +80,7 @@ public class UnitTests {
     @Test
     public void testCreateIndex() throws IOException {
         DB db = g.getDB();
-        Schema sc = db.getSchema(TEST_CLASS);
+        Collection sc = db.getSchema(TEST_CLASS);
         sc.createIndex(OType.STRING, TEST_PKEY);
         Assert.assertEquals(sc.getIndexes().iterator().next().getName(), TEST_CLASS + "." + TEST_PKEY);
     }
@@ -88,7 +88,7 @@ public class UnitTests {
     @Test
     public void testNodeChanges() throws IOException {
         DB db = g.getDB();
-        Schema sc = db.getSchema(TEST_CLASS);
+        Collection sc = db.getSchema(TEST_CLASS);
         sc.createIndex(OType.INTEGER, TEST_PKEY);
 
         HashMap<String, Object> attributes = new HashMap<String, Object>();
@@ -105,7 +105,7 @@ public class UnitTests {
     @Test
     public void testUpdateNode() throws IOException {
         DB db = g.getDB();
-        Schema sc = db.getSchema(TEST_CLASS);
+        Collection sc = db.getSchema(TEST_CLASS);
         sc.createIndex(OType.INTEGER, TEST_PKEY);
 
         HashMap<String, Object> attributes = new HashMap<String, Object>();
@@ -123,7 +123,7 @@ public class UnitTests {
     @Test
     public void testExistRelationClass() throws IOException {
         DB db = g.getDB();
-        Schema sc = db.getSchema(TEST_CLASS);
+        Collection sc = db.getSchema(TEST_CLASS);
         Assert.assertTrue(!sc.existRelationClass(TEST_RELATION));
         Assert.assertTrue(sc.existRelationClass(TEST_RELATION, true));
     }
@@ -131,7 +131,7 @@ public class UnitTests {
     @Test
     public void testCreateRelation() throws IOException {
         DB db = g.getDB();
-        Schema sc = db.getSchema(TEST_CLASS);
+        Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         sc.createRelation(v1, v2, TEST_RELATION);
@@ -142,7 +142,7 @@ public class UnitTests {
     @Test
     public void testRelationHasChanged() throws IOException {
         DB db = g.getDB();
-        Schema sc = db.getSchema(TEST_CLASS);
+        Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         Edge edge = sc.createRelation(v1, v2, TEST_RELATION);
@@ -156,7 +156,7 @@ public class UnitTests {
     @Test
     public void testRelationUpdate() throws IOException {
         DB db = g.getDB();
-        Schema sc = db.getSchema(TEST_CLASS);
+        Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         HashMap<String, Object> attributes = new HashMap<String, Object>();
@@ -171,7 +171,7 @@ public class UnitTests {
     @Test
     public void testExecuteQuery() throws IOException {
         DB db = g.getDB();
-        Schema sc = db.getSchema(TEST_CLASS);
+        Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         Edge edge = sc.createRelation(v1, v2, TEST_RELATION);
@@ -193,7 +193,7 @@ public class UnitTests {
     @Test
     public void testNodesRelated() throws IOException {
         DB db = g.getDB();
-        Schema sc = db.getSchema(TEST_CLASS);
+        Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         Edge edge = sc.createRelation(v1, v2, TEST_RELATION);
@@ -210,7 +210,7 @@ public class UnitTests {
     @Test
     public void testGetVertexRelations() throws IOException {
         DB db = g.getDB();
-        Schema sc = db.getSchema(TEST_CLASS);
+        Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         Edge edge = sc.createRelation(v1, v2, TEST_RELATION);
@@ -226,7 +226,7 @@ public class UnitTests {
     @Test
     public void testRelationNames() throws IOException {
         DB db = g.getDB();
-        Schema sc = db.getSchema(TEST_CLASS);
+        Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         sc.createRelation(v1, v2, TEST_RELATION);

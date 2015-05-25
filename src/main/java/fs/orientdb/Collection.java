@@ -1,5 +1,11 @@
 package fs.orientdb;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
@@ -12,20 +18,17 @@ import com.tinkerpop.blueprints.impls.orient.OrientDynaElementIterable;
 import com.tinkerpop.blueprints.impls.orient.OrientEdgeType;
 import com.tinkerpop.blueprints.impls.orient.OrientVertexType;
 
-import java.util.*;
-import java.util.stream.StreamSupport;
-
 /**
  * Schema implementation for OrientDB graph database
  * Created by dgutierrez on 23/5/15.
  */
-public class Schema {
+public class Collection {
     // Schema name
     private String className;
     // Instance to parent graph database
     private OrientBaseGraph graphDB;
 
-    public Schema(String schema, OrientBaseGraph db) {
+    public Collection(String schema, OrientBaseGraph db) {
         this.className = schema;
         this.graphDB = db;
     }
