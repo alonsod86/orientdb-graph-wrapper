@@ -43,12 +43,12 @@ g.closeAll();
 ### Working with collections
 Once we have a connection with our database we need to access a specific collection or class in order to start inserting, querying or deleting data. To retreive a collection instance do this
 ```Java
-Schema sc = db.getSchema("my_schema");
+Collection co = db.getSchema("my_collection");
 ```
 Now we have access to every simplified operation within the database. Let's see a brief example
 ```Java
-Vertex v1 = sc.createNode(new Pk("My_Pk", 1));
-Vertex v2 = sc.createNode(new Pk("My_Pk", 2));
-sc.createRelation(v1, v2, "Relation_Name");
+Vertex v1 = co.createNode(new Pk("My_Pk", 1));
+Vertex v2 = co.createNode(new Pk("My_Pk", 2));
+co.createRelation(v1, v2, "Relation_Name");
 ```
 There are many wrapped operations. Check the UnitTest class for further information.
