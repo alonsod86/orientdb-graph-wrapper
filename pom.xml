@@ -12,7 +12,7 @@
     <name>orientdb-graph-wrapper</name>
 
     <properties>
-        <orientdb.version>2.1-rc2</orientdb.version>
+        <orientdb.version>2.1-rc3</orientdb.version>
     </properties>
 
 

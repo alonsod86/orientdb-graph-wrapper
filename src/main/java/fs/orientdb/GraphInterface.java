@@ -48,6 +48,24 @@ public class GraphInterface {
     public GraphInterface(String database, String schema, String user, String password) {
         this.config = new OrientConfiguration(database, schema, user, password);
     }
+    
+    /**
+     * Instantiate an authenticated OrientDB graph database using remote connection by default
+     * @param database
+     * @param schema
+     */
+    public GraphInterface(String database, String schema, Integer poolMin, Integer poolMax, String user, String password) {
+        this.config = new OrientConfiguration(database, schema, poolMin, poolMax, user, password);
+    }
+    
+    /**
+     * Instantiate an authenticated OrientDB graph database using remote connection by default
+     * @param database
+     * @param schema
+     */
+    public GraphInterface(String database, String schema, Integer poolMin, Integer poolMax, String user, String password, String databaseType) {
+    	this.config = new OrientConfiguration(database, schema, poolMin, poolMax, user, password, databaseType);
+    }
 
     /**
      * Instantiate an OrientDB graph database using the type of database given in constructor

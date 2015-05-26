@@ -1,15 +1,24 @@
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientDynaElementIterable;
-import fs.orientdb.*;
-import org.junit.*;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import fs.orientdb.Collection;
+import fs.orientdb.DB;
+import fs.orientdb.GraphInterface;
+import fs.orientdb.OrientConfiguration;
+import fs.orientdb.Pk;
 
 /**
  * Created by tiocansino on 23/5/15.
@@ -122,8 +131,7 @@ public class UnitTests {
 
     @Test
     public void testExistRelationClass() throws IOException {
-        DB db = g.getDB();
-        Collection sc = db.getSchema(TEST_CLASS);
+        DB sc = g.getDB();
         Assert.assertTrue(!sc.existRelationClass(TEST_RELATION));
         Assert.assertTrue(sc.existRelationClass(TEST_RELATION, true));
     }
@@ -134,7 +142,7 @@ public class UnitTests {
         Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
-        sc.createRelation(v1, v2, TEST_RELATION);
+        db.createRelation(v1, v2, TEST_RELATION);
 
         Assert.assertTrue(db.getGraphEngine().countEdges()==1);
     }
@@ -145,12 +153,12 @@ public class UnitTests {
         Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
-        Edge edge = sc.createRelation(v1, v2, TEST_RELATION);
+        Edge edge = db.createRelation(v1, v2, TEST_RELATION);
 
         HashMap<String, Object> attributes = new HashMap<String, Object>();
-        Assert.assertTrue(!sc.relationHasChanged(edge, attributes));
+        Assert.assertTrue(!db.relationHasChanged(edge, attributes));
         attributes.put("attrib1", "val1");
-        Assert.assertTrue(sc.relationHasChanged(edge, attributes));
+        Assert.assertTrue(db.relationHasChanged(edge, attributes));
     }
 
     @Test
@@ -161,10 +169,10 @@ public class UnitTests {
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         HashMap<String, Object> attributes = new HashMap<String, Object>();
         attributes.put("attrib1", "val1");
-        Edge edge = sc.createRelation(v1, v2, TEST_RELATION, attributes);
+        Edge edge = db.createRelation(v1, v2, TEST_RELATION, attributes);
         Assert.assertTrue(edge.getPropertyKeys().size()==1);
         attributes.put("attrib2", "val2");
-        edge = sc.relationUpdate(edge, attributes);
+        edge = db.relationUpdate(edge, attributes);
         Assert.assertTrue(edge.getPropertyKeys().size()==2);
     }
 
@@ -174,15 +182,15 @@ public class UnitTests {
         Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
-        Edge edge = sc.createRelation(v1, v2, TEST_RELATION);
+        Edge edge = db.createRelation(v1, v2, TEST_RELATION);
 
-        OrientDynaElementIterable query = sc.executeQuery("SELECT FROM E");
+        OrientDynaElementIterable query = db.executeQuery("SELECT FROM E");
         Iterator it = query.iterator();
         // only one relation
         it.next();
         Assert.assertTrue(!it.hasNext());
 
-        query = sc.executeQuery("SELECT FROM V");
+        query = db.executeQuery("SELECT FROM V");
         it = query.iterator();
         // two vertices
         it.next();
@@ -196,7 +204,7 @@ public class UnitTests {
         Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
-        Edge edge = sc.createRelation(v1, v2, TEST_RELATION);
+        Edge edge = db.createRelation(v1, v2, TEST_RELATION);
         Iterator<Vertex> it = sc.getNodesRelated(v1, Direction.BOTH).iterator();
         // only one vertex
         Vertex e = it.next();
@@ -213,7 +221,7 @@ public class UnitTests {
         Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
-        Edge edge = sc.createRelation(v1, v2, TEST_RELATION);
+        Edge edge = db.createRelation(v1, v2, TEST_RELATION);
         Iterator<Edge> it = sc.getRelations(v2, Direction.OUT).iterator();
         Edge e = it.next();
         Assert.assertTrue(e.getId().equals(edge.getId()));
@@ -229,8 +237,8 @@ public class UnitTests {
         Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
-        sc.createRelation(v1, v2, TEST_RELATION);
-        sc.createRelation(v1, v2, TEST_RELATION + "_2");
+        db.createRelation(v1, v2, TEST_RELATION);
+        db.createRelation(v1, v2, TEST_RELATION + "_2");
 
         List<String> names = sc.getRelationsNames(v1,Direction.IN);
 
