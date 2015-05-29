@@ -177,7 +177,7 @@ public class UnitTests {
     }
 
     @Test
-    public void testExecuteQuery() throws IOException {
+    public void testExecuteQuery() throws Exception {
         DB db = g.getDB();
         Collection sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
