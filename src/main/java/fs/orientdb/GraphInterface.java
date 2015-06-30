@@ -1,17 +1,26 @@
 package fs.orientdb;
 
+import java.io.IOException;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.orientechnologies.orient.client.remote.OServerAdmin;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
+import com.orientechnologies.orient.core.iterator.ORecordIteratorClass;
+import com.orientechnologies.orient.core.record.impl.ODocument;
+import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
 
-import java.io.IOException;
 
 /**
  * Connection Pool for OrientDB graph database
  * Created by dgutierrez on 23/5/15.
  */
 public class GraphInterface {
+	static Logger log = LoggerFactory.getLogger(GraphInterface.class.getSimpleName());
     // Instance configuration for graph database
     private OrientConfiguration config = new OrientConfiguration();
     // Factory builder for database
@@ -151,7 +160,7 @@ public class GraphInterface {
             try {
                 db.shutdown();
             } catch (Exception e) {
-                e.printStackTrace();
+            	log.error("Error closingDB", e);
             }
         }
     }
@@ -181,4 +190,16 @@ public class GraphInterface {
             memoryServer.getStorage().delete();
         }
     }
+    
+    public ORecordIteratorClass<ODocument> browseClass(String className){
+    	if (this.factory != null){
+    		return this.factory.getDatabase().browseClass(className);    		
+    	}else{
+    		return null;
+    	}    	
+    }
+    
+    public List<ODocument> query (String sql){
+		return this.factory.getDatabase().query(new OSQLSynchQuery<ODocument> (sql));
+	}
 }

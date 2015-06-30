@@ -1,6 +1,7 @@
 package fs.orientdb;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -9,13 +10,10 @@ import java.util.Set;
 import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
-import com.orientechnologies.orient.core.sql.OCommandSQL;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
-import com.tinkerpop.blueprints.impls.orient.OrientDynaElementIterable;
-import com.tinkerpop.blueprints.impls.orient.OrientEdgeType;
 import com.tinkerpop.blueprints.impls.orient.OrientVertexType;
 
 /**
@@ -38,11 +36,16 @@ public class Collection {
      * @return boolean. If the nodes exists or not.
      */
     public Vertex existNode(String key, Object value){
-        Vertex node = null;
         try{
-            node = this.graphDB.getVertexByKey(className + "." + key, value);
-            return node;
-        }catch (IllegalArgumentException iae){
+        	Iterable<Vertex> vertices = this.graphDB.getVertices(key, value);
+        	if (vertices!=null) {
+        		Iterator<Vertex> it = vertices.iterator();
+        		if (it!=null && it.hasNext()) {
+        			return it.next();
+        		}
+        	}
+            return null;
+        }catch (Exception iae){
             return null;
         }
     }
@@ -58,17 +61,34 @@ public class Collection {
      * @return
      */
     public boolean nodeHasChanged(Vertex node, HashMap<String, Object> newAttributes) {
-        for (String key : newAttributes.keySet()) {
-            String prop = node.getProperty(key);
-            if (prop == null) {
-                return true; //if the new attribute is new, it's a change
-            } else if (!prop.equals(newAttributes.get(key))) {
-                return true; //if it's not equal, it's a change
-            }
+        for (String key : newAttributes.keySet()) {        	
+    		if (newAttributes.get(key) != null){
+	            Object prop = node.getProperty(key);
+	            if (prop == null) {
+	                return true; //if the new attribute is new, it's a change
+	            } else if (!prop.toString().equals(newAttributes.get(key))) {
+	                return true; //if it's not equal, it's a change
+	            }
+        	}       		        	        	
         }
         return false;
     }
-
+    
+    public boolean nodeHasChanged(Vertex node, HashMap<String, Object> newAttributes, String... excluded) {
+    	 for (String key : newAttributes.keySet()) {
+    		 if (!Arrays.asList(excluded).contains(key)){    			     		 
+	     		if (newAttributes.get(key) != null){
+	 	            Object prop = node.getProperty(key);
+	 	            if (prop == null) {
+	 	                return true; //if the new attribute is new, it's a change
+	 	            } else if (!prop.toString().equals(newAttributes.get(key).toString())) {
+	 	                return true; //if it's not equal, it's a change
+	 	            }
+	         	}
+    		 }
+         }
+    	return false;
+    }
     /**
      * Create a new node using a primary key and some attributes. If overWrite is true, it will try to find
      * it by its pk and then update it's attributes
@@ -84,8 +104,8 @@ public class Collection {
             node.setProperty(pk.key, pk.value);
 
             if (attributes!=null) {
-                for (String key : attributes.keySet()) {
-                    node.setProperty(key, attributes.get(key));
+                for (String key : attributes.keySet()) {                	
+            		node.setProperty(key, attributes.get(key));                	
                 }
             }
         } else if (node != null && overWrite){
@@ -127,7 +147,7 @@ public class Collection {
      * @param node
      * @param attributes
      */
-    public void updateNode(Vertex node, HashMap<String, Object> attributes, boolean clearIt){
+    public void updateNode(Vertex node, HashMap<String, Object> attributes, boolean clearIt){    	
         if (clearIt){
             for (String key : node.getPropertyKeys()){
                 node.removeProperty(key);
@@ -210,5 +230,5 @@ public class Collection {
     public Set<OIndex<?>> getIndexes() {
         OrientVertexType vertexType = graphDB.getVertexType(className);
         return vertexType.getIndexes();
-    }
+    }	
 }

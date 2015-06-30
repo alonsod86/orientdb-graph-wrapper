@@ -1,7 +1,12 @@
 package fs.orientdb;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
@@ -19,6 +24,9 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertexType;
  * Created by dgutierrez on 23/5/15.
  */
 public class DB {
+	
+	static Logger log = LoggerFactory.getLogger(DB.class.getSimpleName());
+	
 	// Instance to transactional or non transactional graph database
 	private OrientBaseGraph graphDB;
 
@@ -53,6 +61,19 @@ public class DB {
 		return this.graphDB;
 	}
 
+	
+	public OrientVertexType createClass (String className, String pKey){
+		try{
+			OrientVertexType vertexType = graphDB.createVertexType(className, "V");
+			if (pKey != null){						
+				vertexType.createProperty(pKey, OType.STRING);
+				vertexType.createIndex(className + "." + pKey, OClass.INDEX_TYPE.UNIQUE, pKey);						
+			}
+			return vertexType;
+		}catch (Exception e){
+			return null;
+		}
+	}
 
 	/**
 	 * Method to find out if a class is defined in the database. It may create it.
@@ -63,11 +84,7 @@ public class DB {
 	public boolean existClass(String className, String pKey, boolean createIt){
 		OrientVertexType vertexType = graphDB.getVertexType(className);
 		if (vertexType == null && createIt){
-			vertexType = graphDB.createVertexType(className, "V");
-			if (pKey != null){
-				vertexType.createProperty(pKey, OType.STRING);
-				vertexType.createIndex(className + "." + pKey, OClass.INDEX_TYPE.UNIQUE, pKey);
-			}
+			vertexType = createClass(className, pKey);
 		}
 		return (vertexType != null);
 	}
@@ -92,9 +109,18 @@ public class DB {
 	public boolean existRelationClass(String name, boolean createIt) {
 		OrientEdgeType edgeType = graphDB.getEdgeType(name);
 		if (edgeType == null && createIt){
-			edgeType = graphDB.createEdgeType(name, "E");
+			edgeType = createRelationClass(name);
 		}
 		return (edgeType != null);
+	}
+	
+	public OrientEdgeType createRelationClass(String name){
+		try {
+			OrientEdgeType edgeType = graphDB.createEdgeType(name, "E");		
+			return edgeType;
+		} catch (Exception e) {
+			return null;
+		}
 	}
 
 	/**
@@ -106,6 +132,26 @@ public class DB {
 	 */
 	public Edge existRelation(Vertex inNode, Vertex outNode, String name){
 		return this.existRelation(inNode, outNode, name, false, null);
+	}
+	
+	/**
+	 * Return a node with hte pk of the passed class
+	 * @param className
+	 * @param pk
+	 * @return
+	 */
+	public Vertex existNode(String className, String pk, String pkName){
+		try {
+			OrientDynaElementIterable lVertices = this.executeQuery("select * from " + className + " where " + pkName + " like '" + pk + "'");
+			Vertex v = null;
+			for (Object vertex : lVertices){
+				v = (Vertex) vertex;				
+			}
+			return v;
+		} catch (Exception e) {
+			return null;
+		}
+		
 	}
 
 	/**
@@ -120,7 +166,7 @@ public class DB {
 	public Edge existRelation (Vertex inNode, Vertex outNode, String name, boolean createIt, HashMap<String, Object> attributes){
 		OCommandSQL sql = new OCommandSQL("SELECT * FROM " + name + " WHERE out=\"" + outNode.getId() + "\" AND in=\"" + inNode.getId() + "\"");
 		OrientDynaElementIterable lEdges = this.graphDB.command(sql).execute();
-		Iterator itr = lEdges.iterator();
+		Iterator<Object> itr = lEdges.iterator();
 		while(itr.hasNext()) {
 			return (Edge) itr.next();
 		}
@@ -141,6 +187,7 @@ public class DB {
 	public Edge createRelation (Vertex inNode, Vertex outNode, String name, HashMap<String, Object> attributes){
 		try{
 			Edge edge = outNode.addEdge(name, inNode);
+			//edge.setProperty("name", name);
 			if (attributes != null){
 				for (String key : attributes.keySet()){
 					edge.setProperty(key, attributes.get(key));
@@ -148,7 +195,7 @@ public class DB {
 			}
 			return edge;
 		}catch (Exception e){
-			//nothing to do
+			log.error(ExceptionUtils.getStackTrace(e));
 		}
 		return null;
 	}
@@ -171,6 +218,20 @@ public class DB {
 			}else if (!prop.equals(attributes.get(key))){
 				return true; //if it's not equal, it's a change
 			}
+		}
+		return false;
+	}
+	
+	public boolean relationHasChanged (Edge relation, HashMap<String, Object> attributes, String...excluded){
+		for (String key : attributes.keySet()){
+			 if (!Arrays.asList(excluded).contains(key)){    	
+				String prop = relation.getProperty(key).toString();
+				if (prop == null){
+					return true; //if the new attribute is new, it's a change
+				}else if (!prop.equals(attributes.get(key).toString())){
+					return true; //if it's not equal, it's a change
+				}				 
+			 }			
 		}
 		return false;
 	}
@@ -225,5 +286,14 @@ public class DB {
 
 	public boolean existClass(String className, String pKey){
 		return existClass(className, pKey, false);
+	}
+
+	/**
+	 * REturns the node represented by de rid 
+	 * @param nodeID
+	 * @return
+	 */
+	public Vertex getNode (String nodeID){
+		return graphDB.getVertex(nodeID);
 	}
 }
