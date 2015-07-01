@@ -14,12 +14,12 @@ import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientDynaElementIterable;
 
-import fs.orientdb.OFactory;
-import fs.orientdb.Schema;
 import fs.orientdb.DB;
 import fs.orientdb.GraphInterface;
+import fs.orientdb.OFactory;
 import fs.orientdb.OrientConfiguration;
 import fs.orientdb.Pk;
+import fs.orientdb.Schema;
 
 /**
  * Created by tiocansino on 23/5/15.
