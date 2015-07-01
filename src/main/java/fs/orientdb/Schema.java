@@ -20,13 +20,13 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertexType;
  * Schema implementation for OrientDB graph database
  * Created by dgutierrez on 23/5/15.
  */
-public class Collection {
+public class Schema {
     // Schema name
     private String className;
     // Instance to parent graph database
     private OrientBaseGraph graphDB;
 
-    public Collection(String schema, OrientBaseGraph db) {
+    public Schema(String schema, OrientBaseGraph db) {
         this.className = schema;
         this.graphDB = db;
     }
@@ -223,10 +223,11 @@ public class Collection {
             vertexType = graphDB.createVertexType(className, "V");
         }
 
-        vertexType.createProperty(field, OType.STRING);
+        vertexType.createProperty(field, type);
         vertexType.createIndex(className + "." + field, OClass.INDEX_TYPE.UNIQUE, field);
     }
 
+    
     public Set<OIndex<?>> getIndexes() {
         OrientVertexType vertexType = graphDB.getVertexType(className);
         return vertexType.getIndexes();

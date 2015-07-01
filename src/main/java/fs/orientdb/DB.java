@@ -3,20 +3,25 @@ package fs.orientdb;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.orientechnologies.orient.core.iterator.ORecordIteratorClass;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
+import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.OCommandSQL;
+import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientDynaElementIterable;
 import com.tinkerpop.blueprints.impls.orient.OrientEdgeType;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
+import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
 import com.tinkerpop.blueprints.impls.orient.OrientVertexType;
 
 /**
@@ -24,22 +29,35 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertexType;
  * Created by dgutierrez on 23/5/15.
  */
 public class DB {
-	
 	static Logger log = LoggerFactory.getLogger(DB.class.getSimpleName());
-	
+
 	// Instance to transactional or non transactional graph database
 	private OrientBaseGraph graphDB;
 
-	public DB(OrientBaseGraph graph) {
-		this.graphDB = graph;
-	}
+	// Instance to the factory used to create instances to database
+	private OrientGraphFactory factory;
 
-	public Collection getSchema(String schemaName) {
-		return new Collection(schemaName, graphDB);
+	/**
+	 * Create an active connection using the factory that contains all the information necessary to connect to an Orientdb database
+	 * @param factory
+	 * @param transactional
+	 */
+	public DB(OrientGraphFactory factory, boolean transactional) {
+		if (transactional) this.graphDB = factory.getTx();
+		else this.graphDB = factory.getNoTx();
 	}
 
 	/**
-	 * Closes the connection and returns the database to the pool
+	 * Returns an interface to work with Orientdb classes
+	 * @param Schema
+	 * @return
+	 */
+	public Schema getSchema(String Schema) {
+		return new Schema(Schema, graphDB);
+	}
+
+	/**
+	 * Closes the connection and returns the database to the pool.
 	 */
 	public void close() {
 		this.graphDB.shutdown();
@@ -61,7 +79,30 @@ public class DB {
 		return this.graphDB;
 	}
 
-	
+	/**
+	 * Browses a class within the current database
+	 * @param Schema
+	 * @return
+	 */
+	public ORecordIteratorClass<ODocument> browseClass(String Schema){
+		return this.factory.getDatabase().browseClass(Schema);    		
+	}
+
+	/**
+	 * Executes a SQL query returning a result set of ODocuments
+	 * @param sql
+	 * @return
+	 */
+	public List<ODocument> query(String sql){
+		return this.factory.getDatabase().query(new OSQLSynchQuery<ODocument> (sql));
+	}
+
+	/**
+	 * Creates a new class with a String property
+	 * @param className
+	 * @param pKey
+	 * @return
+	 */
 	public OrientVertexType createClass (String className, String pKey){
 		try{
 			OrientVertexType vertexType = graphDB.createVertexType(className, "V");
@@ -113,7 +154,7 @@ public class DB {
 		}
 		return (edgeType != null);
 	}
-	
+
 	public OrientEdgeType createRelationClass(String name){
 		try {
 			OrientEdgeType edgeType = graphDB.createEdgeType(name, "E");		
@@ -133,7 +174,7 @@ public class DB {
 	public Edge existRelation(Vertex inNode, Vertex outNode, String name){
 		return this.existRelation(inNode, outNode, name, false, null);
 	}
-	
+
 	/**
 	 * Return a node with hte pk of the passed class
 	 * @param className
@@ -151,7 +192,7 @@ public class DB {
 		} catch (Exception e) {
 			return null;
 		}
-		
+
 	}
 
 	/**
@@ -221,17 +262,17 @@ public class DB {
 		}
 		return false;
 	}
-	
+
 	public boolean relationHasChanged (Edge relation, HashMap<String, Object> attributes, String...excluded){
 		for (String key : attributes.keySet()){
-			 if (!Arrays.asList(excluded).contains(key)){    	
+			if (!Arrays.asList(excluded).contains(key)){    	
 				String prop = relation.getProperty(key).toString();
 				if (prop == null){
 					return true; //if the new attribute is new, it's a change
 				}else if (!prop.equals(attributes.get(key).toString())){
 					return true; //if it's not equal, it's a change
 				}				 
-			 }			
+			}			
 		}
 		return false;
 	}

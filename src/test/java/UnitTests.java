@@ -14,7 +14,8 @@ import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientDynaElementIterable;
 
-import fs.orientdb.Collection;
+import fs.orientdb.OFactory;
+import fs.orientdb.Schema;
 import fs.orientdb.DB;
 import fs.orientdb.GraphInterface;
 import fs.orientdb.OrientConfiguration;
@@ -30,47 +31,48 @@ public class UnitTests {
     private GraphInterface g;
 
     private String TEST_CLASS = "test";
+    private String TEST_INDEX = "index";
     private String TEST_PKEY = "pkey";
     private String TEST_RELATION = "relation";
 
     @Before
     public void initConfig() throws IOException {
-        this.config = new OrientConfiguration("in_memory","test",1,1,OrientConfiguration.DATABASE_MEMORY);
+        this.config = new OrientConfiguration("in_memory",1,1,OrientConfiguration.DATABASE_MEMORY);
         //this.config = new OrientConfiguration("/dir/mydb", "my_schema", 1, 10, OrientConfiguration.DATABASE_LOCAL);
         //this.config = new OrientConfiguration("localhost","test",1,1,"root", "root", OrientConfiguration.DATABASE_REMOTE);
         g = new GraphInterface(this.config);
 
     }
-
+    
     @After
-    public void resetPool() throws IOException {
-        g.drop();
-        g.closeAll();
+    public void clear() throws IOException {
+    	g.dropDatabase("my_database");
     }
 
     @Test
     public void testNoTx() throws IOException {
-        DB graph = g.getDB(false);
+        DB graph = g.getOFactory("my_database").getDB();
         Assert.assertTrue(!graph.isTransactional());
     }
 
     @Test
     public void testTx() throws IOException {
-        DB graph = g.getDB(true);
+        DB graph = g.getOFactory("my_database").getDB(true);
         Assert.assertTrue(graph.isTransactional());
     }
 
     @Test
     public void testPool() throws IOException {
-        int created = g.getFactory().getCreatedInstancesInPool();
-        g.getDB();
-        int available = g.getFactory().getAvailableInstancesInPool();
+    	OFactory factory = g.getOFactory("my_database");
+        int created = factory.getFactory().getCreatedInstancesInPool();
+        factory.getDB();
+        int available = factory.getFactory().getAvailableInstancesInPool();
         Assert.assertTrue(available == (created-1));
     }
 
     @Test
     public void testExistClass() throws IOException {
-        DB db = g.getDB();
+        DB db = g.getOFactory("my_database").getDB();
         Assert.assertTrue(!db.existClass(TEST_CLASS));
         Assert.assertTrue(!db.existClass(TEST_CLASS, TEST_PKEY));
         Assert.assertTrue(db.existClass(TEST_CLASS, TEST_PKEY, true));
@@ -78,27 +80,27 @@ public class UnitTests {
 
     @Test
     public void testExistNode() throws IOException {
-        DB db = g.getDB();
-        Collection sc = db.getSchema(TEST_CLASS);
+        DB db = g.getOFactory("my_database").getDB();
+        Schema sc = db.getSchema(TEST_CLASS);
         // create index for searching
-        sc.createIndex(OType.INTEGER, TEST_PKEY);
+        //sc.createIndex(OType.INTEGER, TEST_PKEY);
         sc.createNode(new Pk(TEST_PKEY, 1));
         Assert.assertTrue(sc.existNode(new Pk(TEST_PKEY, 1))!=null);
     }
 
     @Test
     public void testCreateIndex() throws IOException {
-        DB db = g.getDB();
-        Collection sc = db.getSchema(TEST_CLASS);
+        DB db = g.getOFactory("my_database").getDB();
+        Schema sc = db.getSchema(TEST_INDEX);
         sc.createIndex(OType.STRING, TEST_PKEY);
-        Assert.assertEquals(sc.getIndexes().iterator().next().getName(), TEST_CLASS + "." + TEST_PKEY);
+        Assert.assertEquals(sc.getIndexes().iterator().next().getName(), TEST_INDEX + "." + TEST_PKEY);
     }
 
     @Test
     public void testNodeChanges() throws IOException {
-        DB db = g.getDB();
-        Collection sc = db.getSchema(TEST_CLASS);
-        sc.createIndex(OType.INTEGER, TEST_PKEY);
+        DB db = g.getOFactory("my_database").getDB();
+        Schema sc = db.getSchema(TEST_CLASS);
+        //sc.createIndex(OType.INTEGER, TEST_PKEY);
 
         HashMap<String, Object> attributes = new HashMap<String, Object>();
         attributes.put("attrib1", "val1");
@@ -113,8 +115,8 @@ public class UnitTests {
 
     @Test
     public void testUpdateNode() throws IOException {
-        DB db = g.getDB();
-        Collection sc = db.getSchema(TEST_CLASS);
+        DB db = g.getOFactory("my_database").getDB();
+        Schema sc = db.getSchema(TEST_CLASS);
         sc.createIndex(OType.INTEGER, TEST_PKEY);
 
         HashMap<String, Object> attributes = new HashMap<String, Object>();
@@ -131,15 +133,15 @@ public class UnitTests {
 
     @Test
     public void testExistRelationClass() throws IOException {
-        DB sc = g.getDB();
+        DB sc = g.getOFactory("my_database").getDB();
         Assert.assertTrue(!sc.existRelationClass(TEST_RELATION));
         Assert.assertTrue(sc.existRelationClass(TEST_RELATION, true));
     }
 
     @Test
     public void testCreateRelation() throws IOException {
-        DB db = g.getDB();
-        Collection sc = db.getSchema(TEST_CLASS);
+        DB db = g.getOFactory("my_database").getDB();
+        Schema sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         db.createRelation(v1, v2, TEST_RELATION);
@@ -149,8 +151,8 @@ public class UnitTests {
 
     @Test
     public void testRelationHasChanged() throws IOException {
-        DB db = g.getDB();
-        Collection sc = db.getSchema(TEST_CLASS);
+        DB db = g.getOFactory("my_database").getDB();
+        Schema sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         Edge edge = db.createRelation(v1, v2, TEST_RELATION);
@@ -163,8 +165,8 @@ public class UnitTests {
 
     @Test
     public void testRelationUpdate() throws IOException {
-        DB db = g.getDB();
-        Collection sc = db.getSchema(TEST_CLASS);
+        DB db = g.getOFactory("my_database").getDB();
+        Schema sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         HashMap<String, Object> attributes = new HashMap<String, Object>();
@@ -178,8 +180,8 @@ public class UnitTests {
 
     @Test
     public void testExecuteQuery() throws Exception {
-        DB db = g.getDB();
-        Collection sc = db.getSchema(TEST_CLASS);
+        DB db = g.getOFactory("my_database").getDB();
+        Schema sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         Edge edge = db.createRelation(v1, v2, TEST_RELATION);
@@ -200,8 +202,8 @@ public class UnitTests {
 
     @Test
     public void testNodesRelated() throws IOException {
-        DB db = g.getDB();
-        Collection sc = db.getSchema(TEST_CLASS);
+        DB db = g.getOFactory("my_database").getDB();
+        Schema sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         Edge edge = db.createRelation(v1, v2, TEST_RELATION);
@@ -217,8 +219,8 @@ public class UnitTests {
 
     @Test
     public void testGetVertexRelations() throws IOException {
-        DB db = g.getDB();
-        Collection sc = db.getSchema(TEST_CLASS);
+        DB db = g.getOFactory("my_database").getDB();
+        Schema sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         Edge edge = db.createRelation(v1, v2, TEST_RELATION);
@@ -233,8 +235,8 @@ public class UnitTests {
 
     @Test
     public void testRelationNames() throws IOException {
-        DB db = g.getDB();
-        Collection sc = db.getSchema(TEST_CLASS);
+        DB db = g.getOFactory("my_database").getDB();
+        Schema sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         db.createRelation(v1, v2, TEST_RELATION);

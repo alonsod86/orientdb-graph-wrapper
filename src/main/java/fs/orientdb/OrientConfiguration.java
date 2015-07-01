@@ -13,10 +13,8 @@ public class OrientConfiguration {
     public static final String DATABASE_REMOTE = "remote";
 
     // Database path. It can be a physical directory or a remote url
-    private String database;
+    private String url;
 
-    // Schema. The schema helps to isolate data by creating different databases
-    private String schema;
     private Integer minPool;
     private Integer maxPool;
 
@@ -26,9 +24,8 @@ public class OrientConfiguration {
     // By default the database will be allocated in memory
     private String databaseType = DATABASE_MEMORY;
 
-    public OrientConfiguration(String database, String schema, Integer minPool, Integer maxPool, String username, String password, String databaseType) {
-        this.database = database;
-        this.schema = schema;
+    public OrientConfiguration(String url, Integer minPool, Integer maxPool, String username, String password, String databaseType) {
+        this.url = url;
         this.minPool = minPool;
         this.maxPool = maxPool;
         this.username = username;
@@ -36,44 +33,35 @@ public class OrientConfiguration {
         this.databaseType = databaseType;
     }
 
-    public OrientConfiguration(String database, String schema, Integer minPool, Integer maxPool, String username, String password) {
-        this.database = database;
-        this.schema = schema;
+    public OrientConfiguration(String url, Integer minPool, Integer maxPool, String username, String password) {
+        this.url = url;
         this.minPool = minPool;
         this.maxPool = maxPool;
         this.username = username;
         this.password = password;
     }
 
-    public OrientConfiguration(String database, String schema, Integer minPool, Integer maxPool) {
-        this.database = database;
-        this.schema = schema;
+    public OrientConfiguration(String url, Integer minPool, Integer maxPool) {
+        this.url = url;
         this.minPool = minPool;
         this.maxPool = maxPool;
     }
 
-    public OrientConfiguration(String database, String schema, Integer minPool, Integer maxPool, String databaseType) {
-        this.database = database;
-        this.schema = schema;
+    public OrientConfiguration(String url, Integer minPool, Integer maxPool, String databaseType) {
+        this.url = url;
         this.minPool = minPool;
         this.maxPool = maxPool;
         this.databaseType = databaseType;
     }
 
-    public OrientConfiguration(String database, String schema) {
-        this.database = database;
-        this.schema = schema;
+    public OrientConfiguration(String url) {
+        this.url = url;
         this.minPool = DEFAULT_MIN_POOL;
         this.maxPool = DEFAULT_MAX_POOL;
     }
 
-    public OrientConfiguration(String database) {
-        this.database = database;
-    }
-
-    public OrientConfiguration(String database, String schema, String username, String password) {
-        this.database = database;
-        this.schema = schema;
+    public OrientConfiguration(String url, String username, String password) {
+        this.url = url;
         this.username = username;
         this.password = password;
         this.minPool = DEFAULT_MIN_POOL;
@@ -82,20 +70,12 @@ public class OrientConfiguration {
 
     public OrientConfiguration() {}
 
-    public String getDatabase() {
-        return database;
+    public String getUrl() {
+        return url;
     }
 
-    public void setDatabase(String database) {
-        this.database = database;
-    }
-
-    public String getSchema() {
-        return schema;
-    }
-
-    public void setSchema(String schema) {
-        this.schema = schema;
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public Integer getMinPool() {

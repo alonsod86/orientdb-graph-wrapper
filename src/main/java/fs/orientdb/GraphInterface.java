@@ -1,16 +1,12 @@
 package fs.orientdb;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.orientechnologies.orient.client.remote.OServerAdmin;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
-import com.orientechnologies.orient.core.iterator.ORecordIteratorClass;
-import com.orientechnologies.orient.core.record.impl.ODocument;
-import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
 import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
 
@@ -23,14 +19,6 @@ public class GraphInterface {
 	static Logger log = LoggerFactory.getLogger(GraphInterface.class.getSimpleName());
     // Instance configuration for graph database
     private OrientConfiguration config = new OrientConfiguration();
-    // Factory builder for database
-    private OrientGraphFactory factory;
-
-    // Instance of OServer when connection is local/remote
-    private OServerAdmin remoteServer;
-
-    // Instance of OServer when in memory
-    private ODatabaseDocumentTx memoryServer;
 
     /**
      * Instantiate an OrientDB graph database using configuration class
@@ -42,69 +30,47 @@ public class GraphInterface {
 
     /**
      * Instantiate an OrientDB graph database using remote connection by default
-     * @param database
+     * @param url
      * @param schema
      */
-    public GraphInterface(String database, String schema) {
-        this.config = new OrientConfiguration(database, schema);
+    public GraphInterface(String url) {
+        this.config = new OrientConfiguration(url);
     }
 
     /**
      * Instantiate an authenticated OrientDB graph database using remote connection by default
-     * @param database
+     * @param url
      * @param schema
      */
-    public GraphInterface(String database, String schema, String user, String password) {
-        this.config = new OrientConfiguration(database, schema, user, password);
+    public GraphInterface(String url, String user, String password) {
+        this.config = new OrientConfiguration(url, user, password);
     }
     
     /**
      * Instantiate an authenticated OrientDB graph database using remote connection by default
-     * @param database
+     * @param url
      * @param schema
      */
-    public GraphInterface(String database, String schema, Integer poolMin, Integer poolMax, String user, String password) {
-        this.config = new OrientConfiguration(database, schema, poolMin, poolMax, user, password);
+    public GraphInterface(String url, Integer poolMin, Integer poolMax, String user, String password) {
+        this.config = new OrientConfiguration(url, poolMin, poolMax, user, password);
     }
     
     /**
      * Instantiate an authenticated OrientDB graph database using remote connection by default
-     * @param database
+     * @param url
      * @param schema
      */
-    public GraphInterface(String database, String schema, Integer poolMin, Integer poolMax, String user, String password, String databaseType) {
-    	this.config = new OrientConfiguration(database, schema, poolMin, poolMax, user, password, databaseType);
+    public GraphInterface(String url, Integer poolMin, Integer poolMax, String user, String password, String databaseType) {
+    	this.config = new OrientConfiguration(url, poolMin, poolMax, user, password, databaseType);
     }
 
     /**
-     * Instantiate an OrientDB graph database using the type of database given in constructor
-     * @see OrientConfiguration
-     * @param databaseType
-     * @param database
-     * @param schema
+     * Crates a new database if it does not exist, returning a non transactional instance of it
      */
-    public GraphInterface(String databaseType, String database, String schema) {
-        this.config = new OrientConfiguration(database, schema);
-        this.config.setDatabaseType(databaseType);
-    }
-
-    /**
-     * Authenticates the current instance using the given credentials
-     * @param username
-     * @param password
-     */
-    public void setAuthentication(String username, String password) {
-        this.config.setUsername(username);
-        this.config.setPassword(password);
-    }
-
-    /**
-     * Initialise graph factory with the given configuration
-     */
-    private void initGraphFactory() throws IOException {
+    public DB createDatabase(String database) throws IOException {
         // ensure the existence of the database requested
         if (this.config.getDatabaseType().equals(OrientConfiguration.DATABASE_REMOTE)) {
-            remoteServer = new OServerAdmin(this.config.getDatabaseType() + ":" + this.config.getDatabase() + "/" + this.config.getSchema());
+            OServerAdmin remoteServer = new OServerAdmin(this.config.getDatabaseType() + ":" + this.config.getUrl() + "/" + database);
             if (this.config.getUsername()!=null && this.config.getPassword()!=null) {
                 remoteServer.connect(this.config.getUsername(), this.config.getPassword());
             }
@@ -115,7 +81,7 @@ public class GraphInterface {
             remoteServer.close();
         } else {
             // Create connection with database
-            memoryServer = new ODatabaseDocumentTx(this.config.getDatabaseType() + ":" + this.config.getDatabase() + "/" + this.config.getSchema());
+        	ODatabaseDocumentTx memoryServer = new ODatabaseDocumentTx(this.config.getDatabaseType() + ":" + this.config.getUrl() + "/" + database);
             if (!memoryServer.exists()) {
                 memoryServer.create();
             }
@@ -123,34 +89,70 @@ public class GraphInterface {
         }
 
         // create factory for the database
-        factory = new OrientGraphFactory(this.config.getDatabaseType() + ":" +
-                this.config.getDatabase() + "/" + this.config.getSchema())
-                .setupPool(this.config.getMinPool(), this.config.getMaxPool());
-
+        return new DB(new OrientGraphFactory(this.config.getDatabaseType() + ":" +
+                this.config.getUrl() + "/" + database)
+                .setupPool(this.config.getMinPool(), this.config.getMaxPool()), false);
     }
-
+    
     /**
-     * Returns a non transactional instance of the database
-     * @return
+     * Drops a given database
+     * @throws IOException
      */
-    public DB getDB() throws IOException {
-        return getDB(false);
-    }
-
-    /**
-     * Returns an instance to de database specifying if transactional or not
-     * @param transactional
-     * @return
-     */
-    public DB getDB(boolean transactional) throws IOException {
-        if (factory==null) initGraphFactory();
-        if (transactional) {
-            return new DB(factory.getTx());
+    public void dropDatabase(String database) throws IOException {
+    	// ensure the existence of the database requested
+        if (this.config.getDatabaseType().equals(OrientConfiguration.DATABASE_REMOTE)) {
+            OServerAdmin remoteServer = new OServerAdmin(this.config.getDatabaseType() + ":" + this.config.getUrl() + "/" + database);
+            if (this.config.getUsername()!=null && this.config.getPassword()!=null) {
+                remoteServer.connect(this.config.getUsername(), this.config.getPassword());
+            }
+            // If the given schema does not exist, create it
+            if (remoteServer.existsDatabase("plocal")) {
+                remoteServer.dropDatabase(this.config.getUrl());
+            }
+            remoteServer.close();
         } else {
-            return new DB(factory.getNoTx());
+            // Create connection with database
+        	ODatabaseDocumentTx memoryServer = new ODatabaseDocumentTx(this.config.getDatabaseType() + ":" + this.config.getUrl() + "/" + database);
+            if (memoryServer.exists()) {
+                memoryServer.getStorage().delete();
+            }
+            memoryServer.close();
         }
     }
-
+    
+    /**
+     * Returns an instance to a remote or local instance of OrientDB admin server
+     * @return
+     * @throws IOException
+     */
+    public OServerAdmin getOServer() throws IOException {
+    	OServerAdmin remoteServer = new OServerAdmin(this.config.getDatabaseType() + ":" + this.config.getUrl());
+        if (this.config.getUsername()!=null && this.config.getPassword()!=null) {
+            remoteServer.connect(this.config.getUsername(), this.config.getPassword());
+        }
+        return remoteServer;
+    }
+    
+    /**
+     * Returns an OrientGraphFactory instance for the given database
+     * @param database
+     * @return
+     */
+    private OrientGraphFactory buildFactory(String database) {
+    	return new OrientGraphFactory(this.config.getDatabaseType() + ":" +
+                this.config.getUrl() + "/" + database)
+                .setupPool(this.config.getMinPool(), this.config.getMaxPool());
+    }
+    
+    /**
+     * Returns an instance to the database factory
+     * @param database
+     * @return
+     */
+    public OFactory getOFactory(String database) {
+    	return new OFactory(buildFactory(database));
+    }
+    
     /**
      * Closes a database and returns it to the pool
      * @param db
@@ -164,42 +166,4 @@ public class GraphInterface {
             }
         }
     }
-
-    /**
-     * Closes every database in the pool and free all resources
-     */
-    public void closeAll() {
-        this.factory.close();
-    }
-
-    /**
-     * Returns the factory used to create databases
-     * @return
-     */
-    public OrientGraphFactory getFactory() throws IOException {
-        if (this.factory==null) initGraphFactory();
-        return this.factory;
-    }
-
-    public void drop() throws IOException {
-        if (remoteServer!=null) {
-            remoteServer.connect(this.config.getUsername(), this.config.getPassword());
-            remoteServer.dropDatabase(this.config.getDatabase());
-        }
-        if (memoryServer!=null) {
-            memoryServer.getStorage().delete();
-        }
-    }
-    
-    public ORecordIteratorClass<ODocument> browseClass(String className){
-    	if (this.factory != null){
-    		return this.factory.getDatabase().browseClass(className);    		
-    	}else{
-    		return null;
-    	}    	
-    }
-    
-    public List<ODocument> query (String sql){
-		return this.factory.getDatabase().query(new OSQLSynchQuery<ODocument> (sql));
-	}
 }
