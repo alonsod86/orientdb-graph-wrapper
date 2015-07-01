@@ -10,10 +10,15 @@ import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
  */
 public class OFactory {
 
+	// Instance to the OrientGraphFactory where the pool is located
 	private OrientGraphFactory factory;
 	
-	public OFactory(OrientGraphFactory factory) {
+	// Instance to the graph interface of the wrapper that created this factory
+	private GraphInterface graphInterface;
+	
+	public OFactory(OrientGraphFactory factory, GraphInterface graphInterface) {
 		this.factory = factory;
+		this.graphInterface = graphInterface;
 	}
 	
 	public DB getDB() {
@@ -26,5 +31,9 @@ public class OFactory {
 	
 	public OrientGraphFactory getFactory() {
 		return factory;
+	}
+	
+	public GraphInterface getGraphInterface() {
+		return graphInterface;
 	}
 }

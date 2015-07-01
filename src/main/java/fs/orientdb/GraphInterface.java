@@ -150,7 +150,7 @@ public class GraphInterface {
      * @return
      */
     public OFactory getOFactory(String database) {
-    	return new OFactory(buildFactory(database));
+    	return new OFactory(buildFactory(database), this);
     }
     
     /**
