@@ -6,7 +6,7 @@ orientdb-graph-wrapper works by default using a configurable connection pool, al
 ## Usage
 Starting with orientdb-graph-wrapper is really straightforward
 ```Java
-OrientConfiguration config = new OrientConfiguration("my_database","my_schema",1,10,OrientConfiguration.DATABASE_MEMORY);
+OrientConfiguration config = new OrientConfiguration("my_database",1,10,OrientConfiguration.DATABASE_MEMORY);
 GraphInterface g = new GraphInterface(config);
 ```
 Now we have a connection to our graph database. If the database and schema did not exist before, the wrapper will create it for you.
