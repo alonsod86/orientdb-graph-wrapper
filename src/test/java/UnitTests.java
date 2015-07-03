@@ -16,7 +16,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientDynaElementIterable;
 
 import fs.orientdb.DB;
 import fs.orientdb.GraphInterface;
-import fs.orientdb.OFactory;
+import fs.orientdb.ODatabase;
 import fs.orientdb.OrientConfiguration;
 import fs.orientdb.Pk;
 import fs.orientdb.Schema;
@@ -63,7 +63,7 @@ public class UnitTests {
 
     @Test
     public void testPool() throws IOException {
-    	OFactory factory = g.getOFactory("my_database");
+    	ODatabase factory = g.getOFactory("my_database");
         int created = factory.getFactory().getCreatedInstancesInPool();
         factory.getDB();
         int available = factory.getFactory().getAvailableInstancesInPool();
@@ -146,7 +146,7 @@ public class UnitTests {
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
         db.createRelation(v1, v2, TEST_RELATION);
 
-        Assert.assertTrue(db.getGraphEngine().countEdges()==1);
+        Assert.assertTrue(db.getTinkerpopInstance().countEdges()==1);
     }
 
     @Test
@@ -184,10 +184,10 @@ public class UnitTests {
         Schema sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
-        Edge edge = db.createRelation(v1, v2, TEST_RELATION);
+        db.createRelation(v1, v2, TEST_RELATION);
 
         OrientDynaElementIterable query = db.executeQuery("SELECT FROM E");
-        Iterator it = query.iterator();
+        Iterator<Object> it = query.iterator();
         // only one relation
         it.next();
         Assert.assertTrue(!it.hasNext());
@@ -206,7 +206,7 @@ public class UnitTests {
         Schema sc = db.getSchema(TEST_CLASS);
         Vertex v1 = sc.createNode(new Pk(TEST_PKEY, 1));
         Vertex v2 = sc.createNode(new Pk(TEST_PKEY, 2));
-        Edge edge = db.createRelation(v1, v2, TEST_RELATION);
+        db.createRelation(v1, v2, TEST_RELATION);
         Iterator<Vertex> it = sc.getNodesRelated(v1, Direction.BOTH).iterator();
         // only one vertex
         Vertex e = it.next();
@@ -247,5 +247,9 @@ public class UnitTests {
         Assert.assertTrue(names.size()==2);
         Assert.assertTrue(names.get(0).equals(TEST_RELATION));
         Assert.assertTrue(names.get(1).equals(TEST_RELATION + "_2"));
+    }
+    
+    public void testConflictStrategy() {
+    	// TODO: check creation of database with different conflict strategies
     }
 }

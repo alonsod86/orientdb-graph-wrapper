@@ -10,6 +10,8 @@ import com.orientechnologies.orient.core.db.document.ODatabaseDocumentTx;
 import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
 
+import fs.orientdb.constants.CONFLICT_STRATEGY;
+
 
 /**
  * Connection Pool for OrientDB graph database
@@ -17,6 +19,14 @@ import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
  */
 public class GraphInterface {
 	static Logger log = LoggerFactory.getLogger(GraphInterface.class.getSimpleName());
+	
+	/**  the default, throw an exception when versions are different */
+	public static final String CONFLIC_STRATEGY_VERSION = "version";
+	/** in case the version is different checks if the content is changed, otherwise use the highest version and avoid throwing exception */
+	public static final String CONFLIC_STRATEGY_CONTENT = "content";
+	/**  merges the changes */
+	public static final String CONFLIC_STRATEGY_AUTOMERGE = "automerge";
+	
     // Instance configuration for graph database
     private OrientConfiguration config = new OrientConfiguration();
 
@@ -65,9 +75,19 @@ public class GraphInterface {
     }
 
     /**
-     * Crates a new database if it does not exist, returning a non transactional instance of it
+     *  Crates a new database if it does not exist, returning a non transactional instance of it
+     * @param database
+     * @return
+     * @throws IOException
      */
     public DB createDatabase(String database) throws IOException {
+    	return createDatabase(database, null);
+    }
+    
+    /**
+     * Crates a new database providing the conflict strategy that will be used by default, returning a non transactional instance of it
+     */
+    public DB createDatabase(String database, CONFLICT_STRATEGY strategy) throws IOException {
         // ensure the existence of the database requested
         if (this.config.getDatabaseType().equals(OrientConfiguration.DATABASE_REMOTE)) {
             OServerAdmin remoteServer = new OServerAdmin(this.config.getDatabaseType() + ":" + this.config.getUrl() + "/" + database);
@@ -88,6 +108,12 @@ public class GraphInterface {
             memoryServer.close();
         }
 
+        // Connect to database and set conflict strategy
+        if (strategy!=null) {
+	        ODatabase factory = getOFactory(database);
+	        factory.setConflictStrategy(strategy);
+        }
+        
         // create factory for the database
         return new DB(new OrientGraphFactory(this.config.getDatabaseType() + ":" +
                 this.config.getUrl() + "/" + database)
@@ -149,8 +175,8 @@ public class GraphInterface {
      * @param database
      * @return
      */
-    public OFactory getOFactory(String database) {
-    	return new OFactory(buildFactory(database), this);
+    public ODatabase getOFactory(String database) {
+    	return new ODatabase(buildFactory(database), this);
     }
     
     /**
@@ -166,4 +192,5 @@ public class GraphInterface {
             }
         }
     }
+    
 }

@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +21,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientDynaElementIterable;
 import com.tinkerpop.blueprints.impls.orient.OrientEdgeType;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
+import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 import com.tinkerpop.blueprints.impls.orient.OrientVertexType;
 
 /**
@@ -31,7 +31,13 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertexType;
 public class DB {
 	static Logger log = LoggerFactory.getLogger(DB.class.getSimpleName());
 
-	// Instance to transactional or non transactional graph database
+	// Instance to a transactional graph database
+	private OrientGraph txGraph;
+
+	// Instance to a non transactional graph database
+	private OrientGraphNoTx regularGraph;
+
+	// Global instance to the currently created database
 	private OrientBaseGraph graphDB;
 
 	// Instance to the factory used to create instances to database
@@ -43,8 +49,13 @@ public class DB {
 	 * @param transactional
 	 */
 	public DB(OrientGraphFactory factory, boolean transactional) {
-		if (transactional) this.graphDB = factory.getTx();
-		else this.graphDB = factory.getNoTx();
+		if (transactional) {
+			this.txGraph = factory.getTx();
+			this.graphDB = this.txGraph;
+		} else {
+			this.regularGraph = factory.getNoTx();
+			this.graphDB = this.regularGraph;
+		}
 	}
 
 	/**
@@ -68,15 +79,40 @@ public class DB {
 	 * @return
 	 */
 	public boolean isTransactional() {
-		return this.graphDB instanceof OrientGraph;
+		return this.txGraph != null;
 	}
 
 	/**
-	 * Returns the original graph engine provided by OrientDB
-	 * @return
+	 * Begins a transaction only on a transactional connection
 	 */
-	public OrientBaseGraph getGraphEngine() {
-		return this.graphDB;
+	public void begin() {
+		if (isTransactional()) {
+			this.graphDB.commit();
+		} else {
+			log.warn("Commit is not necessary with a non transactional connection");
+		}
+	}
+
+	/**
+	 * Commits a transaction only on a transactional connection
+	 */
+	public void commit() {
+		if (isTransactional()) {
+			this.graphDB.commit();
+		} else {
+			log.warn("Commit is not necessary with a non transactional connection");
+		}
+	}
+
+	/**
+	 * Rolls back a transaction only on a transactional connection
+	 */
+	public void rollback() {
+		if (isTransactional()){
+			this.graphDB.rollback();
+		} else {
+			log.warn("Rollback won't work on a non transactional connection");
+		}
 	}
 
 	/**
@@ -112,6 +148,7 @@ public class DB {
 			}
 			return vertexType;
 		}catch (Exception e){
+			log.error("Could not create class of type {} on database {}. Reason is {}", className, getDatabaseName(), e.getMessage());
 			return null;
 		}
 	}
@@ -123,11 +160,16 @@ public class DB {
 	 * @return boolean if the class exists (or has been created)
 	 */
 	public boolean existClass(String className, String pKey, boolean createIt){
-		OrientVertexType vertexType = graphDB.getVertexType(className);
-		if (vertexType == null && createIt){
-			vertexType = createClass(className, pKey);
+		try {
+			OrientVertexType vertexType = graphDB.getVertexType(className);
+			if (vertexType == null && createIt){
+				vertexType = createClass(className, pKey);
+			}
+			return (vertexType != null);
+		} catch (Exception e) {
+			log.error("Could not check existence of class type {} on database {}. Reason is {}", className, getDatabaseName(), e.getMessage());
+			return false;
 		}
-		return (vertexType != null);
 	}
 
 	/**
@@ -142,17 +184,22 @@ public class DB {
 
 	/**
 	 * Checks if a relation class exists. If not, it may be created
-	 * @param name the name of relation
+	 * @param className the name of relation
 	 * @param createIt if it should be created if doesn't exist
 	 * @return
 	 */
 
-	public boolean existRelationClass(String name, boolean createIt) {
-		OrientEdgeType edgeType = graphDB.getEdgeType(name);
-		if (edgeType == null && createIt){
-			edgeType = createRelationClass(name);
+	public boolean existRelationClass(String className, boolean createIt) {
+		try {
+			OrientEdgeType edgeType = graphDB.getEdgeType(className);
+			if (edgeType == null && createIt){
+				edgeType = createRelationClass(className);
+			}
+			return (edgeType != null);
+		} catch (Exception e) {
+			log.error("Could not check existence of relationship class type {} on database {}. Reason is {}", className, getDatabaseName(), e.getMessage());
+			return false;
 		}
-		return (edgeType != null);
 	}
 
 	public OrientEdgeType createRelationClass(String name){
@@ -160,6 +207,7 @@ public class DB {
 			OrientEdgeType edgeType = graphDB.createEdgeType(name, "E");		
 			return edgeType;
 		} catch (Exception e) {
+			log.error("Could not create class for relationship type {} on database {}. Reason is {}", name, getDatabaseName(), e.getMessage());
 			return null;
 		}
 	}
@@ -178,18 +226,19 @@ public class DB {
 	/**
 	 * Return a node with hte pk of the passed class
 	 * @param className
-	 * @param pk
+	 * @param pkValue
 	 * @return
 	 */
-	public Vertex existNode(String className, String pk, String pkName){
+	public Vertex existNode(String className, String pkValue, String pkName){
 		try {
-			OrientDynaElementIterable lVertices = this.executeQuery("select * from " + className + " where " + pkName + " like '" + pk + "'");
+			OrientDynaElementIterable lVertices = this.executeQuery("SELECT FROM " + className + " WHERE " + pkName + " LIKE '" + pkValue + "'");
 			Vertex v = null;
 			for (Object vertex : lVertices){
 				v = (Vertex) vertex;				
 			}
 			return v;
 		} catch (Exception e) {
+			log.error("Could not check if node {} exists on database {}. Reason is {}", pkName+":"+pkValue, getDatabaseName(), e.getMessage());
 			return null;
 		}
 
@@ -205,14 +254,18 @@ public class DB {
 	 * @return
 	 */
 	public Edge existRelation (Vertex inNode, Vertex outNode, String name, boolean createIt, HashMap<String, Object> attributes){
-		OCommandSQL sql = new OCommandSQL("SELECT * FROM " + name + " WHERE out=\"" + outNode.getId() + "\" AND in=\"" + inNode.getId() + "\"");
-		OrientDynaElementIterable lEdges = this.graphDB.command(sql).execute();
-		Iterator<Object> itr = lEdges.iterator();
-		while(itr.hasNext()) {
-			return (Edge) itr.next();
-		}
-		if (createIt){
-			return createRelation(inNode, outNode, name, attributes);
+		try {
+			OCommandSQL sql = new OCommandSQL("SELECT * FROM " + name + " WHERE out=\"" + outNode.getId() + "\" AND in=\"" + inNode.getId() + "\"");
+			OrientDynaElementIterable lEdges = this.graphDB.command(sql).execute();
+			Iterator<Object> itr = lEdges.iterator();
+			while(itr.hasNext()) {
+				return (Edge) itr.next();
+			}
+			if (createIt){
+				return createRelation(inNode, outNode, name, attributes);
+			}
+		} catch (Exception e) {
+			log.error("Could not check existence of relationship {} - {} - {} on database {}. Reason is {}", inNode.getId(), name, outNode.getId(), getDatabaseName(), e.getMessage());
 		}
 		return null;
 	}
@@ -235,8 +288,8 @@ public class DB {
 				}
 			}
 			return edge;
-		}catch (Exception e){
-			log.error(ExceptionUtils.getStackTrace(e));
+		} catch (Exception e) {
+			log.error("Could not create relationship {} - {} - {} on database. Reason is {}", inNode.getId(), name, outNode.getId(), getDatabaseName(), e.getMessage());
 		}
 		return null;
 	}
@@ -293,16 +346,21 @@ public class DB {
 	 * @param clearIt
 	 */
 	public Edge relationUpdate (Edge relation, HashMap<String, Object> attributes, boolean clearIt){
-		if (clearIt){
-			for (String key : relation.getPropertyKeys()){
-				relation.removeProperty(key);
+		try {
+			if (clearIt){
+				for (String key : relation.getPropertyKeys()){
+					relation.removeProperty(key);
+				}
 			}
-		}
-		for (String key : attributes.keySet()){
-			relation.setProperty(key, attributes.get(key));
-		}
+			for (String key : attributes.keySet()){
+				relation.setProperty(key, attributes.get(key));
+			}
 
-		return relation;
+			return relation;
+		} catch (Exception e) {
+			log.error("Could update relationship {} on database {}. Reason is {}", relation.getId(), getDatabaseName(), e.getMessage());
+			return null;
+		}
 	}
 
 	/**
@@ -330,11 +388,36 @@ public class DB {
 	}
 
 	/**
-	 * REturns the node represented by de rid 
-	 * @param nodeID
+	 * Returns the node represented by de rid 
+	 * @param rid
 	 * @return
 	 */
-	public Vertex getNode (String nodeID){
-		return graphDB.getVertex(nodeID);
+	public Vertex getNode (String rid){
+		try {
+			return graphDB.getVertex(rid);
+		} catch (Exception e) {
+			log.error("Could not find node with @rid = {} on database {}. Reason is {}", rid, getDatabaseName(), e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * Returns the original graph engine provided by the tinkerpop api
+	 * @return
+	 */
+	public OrientBaseGraph getTinkerpopInstance() {
+		return this.graphDB;
+	}
+
+	/**
+	 * Returns the database name where this schema belongs to
+	 * @return
+	 */
+	public String getDatabaseName() {
+		try {
+			return this.graphDB.getRawGraph().getName();
+		} catch (Exception e) {
+			return "ERROR_GET_DATABASE_NAME";
+		}
 	}
 }
