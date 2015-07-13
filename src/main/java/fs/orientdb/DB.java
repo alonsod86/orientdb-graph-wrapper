@@ -49,6 +49,7 @@ public class DB {
 	 * @param transactional
 	 */
 	public DB(OrientGraphFactory factory, boolean transactional) {
+		this.factory = factory;
 		if (transactional) {
 			this.txGraph = factory.getTx();
 			this.graphDB = this.txGraph;
@@ -242,6 +243,16 @@ public class DB {
 			return null;
 		}
 
+	}
+	
+	/**
+	 * Return a node with hte pk of the passed class
+	 * @param className
+	 * @param pkValue
+	 * @return
+	 */
+	public Vertex existNode(String pkValue, String pkName){
+		return existNode("V", pkValue, pkName);
 	}
 
 	/**
