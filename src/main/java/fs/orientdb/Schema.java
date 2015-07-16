@@ -90,6 +90,13 @@ public class Schema {
 		}
 	}
 
+	/**
+	 * Method to compare a node with new values, excluding those in the list
+	 * @param node
+	 * @param newAttributes
+	 * @param excluded
+	 * @return
+	 */
 	public boolean nodeHasChanged(Vertex node, HashMap<String, Object> newAttributes, String... excluded) {
 		try {
 			for (String key : newAttributes.keySet()) {

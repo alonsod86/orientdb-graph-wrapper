@@ -12,8 +12,8 @@ public class OrientConfiguration {
     public static final String DATABASE_LOCAL = "plocal";
     public static final String DATABASE_REMOTE = "remote";
 
-    // Database path. It can be a physical directory or a remote url
-    private String url;
+    // Database path. It can be a physical directory or a remote urls
+    private String[] urls;
 
     private Integer minPool;
     private Integer maxPool;
@@ -24,8 +24,8 @@ public class OrientConfiguration {
     // By default the database will be allocated in memory
     private String databaseType = DATABASE_MEMORY;
 
-    public OrientConfiguration(String url, Integer minPool, Integer maxPool, String username, String password, String databaseType) {
-        this.url = url;
+    public OrientConfiguration(String urls, Integer minPool, Integer maxPool, String username, String password, String databaseType) {
+        this.urls = parseUrls(urls);
         this.minPool = minPool;
         this.maxPool = maxPool;
         this.username = username;
@@ -33,35 +33,35 @@ public class OrientConfiguration {
         this.databaseType = databaseType;
     }
 
-    public OrientConfiguration(String url, Integer minPool, Integer maxPool, String username, String password) {
-        this.url = url;
+    public OrientConfiguration(String urls, Integer minPool, Integer maxPool, String username, String password) {
+        this.urls = parseUrls(urls);
         this.minPool = minPool;
         this.maxPool = maxPool;
         this.username = username;
         this.password = password;
     }
 
-    public OrientConfiguration(String url, Integer minPool, Integer maxPool) {
-        this.url = url;
+    public OrientConfiguration(String urls, Integer minPool, Integer maxPool) {
+        this.urls = parseUrls(urls);
         this.minPool = minPool;
         this.maxPool = maxPool;
     }
 
-    public OrientConfiguration(String url, Integer minPool, Integer maxPool, String databaseType) {
-        this.url = url;
+    public OrientConfiguration(String urls, Integer minPool, Integer maxPool, String databaseType) {
+        this.urls = parseUrls(urls);
         this.minPool = minPool;
         this.maxPool = maxPool;
         this.databaseType = databaseType;
     }
 
-    public OrientConfiguration(String url) {
-        this.url = url;
+    public OrientConfiguration(String urls) {
+        this.urls = parseUrls(urls);
         this.minPool = DEFAULT_MIN_POOL;
         this.maxPool = DEFAULT_MAX_POOL;
     }
 
-    public OrientConfiguration(String url, String username, String password) {
-        this.url = url;
+    public OrientConfiguration(String urls, String username, String password) {
+        this.urls = parseUrls(urls);
         this.username = username;
         this.password = password;
         this.minPool = DEFAULT_MIN_POOL;
@@ -70,15 +70,33 @@ public class OrientConfiguration {
 
     public OrientConfiguration() {}
 
-    public String getUrl() {
-        return url;
+    /**
+     * Extracts the list of urls from the connection string
+     * @param urls a list of urls: server1:2525;server2:2526
+     * @return
+     */
+    private String[] parseUrls(String urls) {
+    	if (urls!=null) {
+    		urls = urls.replace(" ", "");
+    		if (urls.contains(";")) {
+    			return urls.split(";");
+    		} else {
+    			return new String[]{urls};
+    		}
+    	}
+    	
+    	return null;
     }
+    
+    public String[] getUrls() {
+		return urls;
+	}
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
+	public void setUrls(String[] urls) {
+		this.urls = urls;
+	}
 
-    public Integer getMinPool() {
+	public Integer getMinPool() {
         return minPool;
     }
 

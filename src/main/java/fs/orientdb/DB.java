@@ -202,6 +202,11 @@ public class DB {
 		}
 	}
 
+	/**
+	 * Creates a new relation class for edges
+	 * @param name
+	 * @return
+	 */
 	public OrientEdgeType createRelationClass(String name){
 		try {
 			OrientEdgeType edgeType = graphDB.createEdgeType(name, "E");		
@@ -294,6 +299,13 @@ public class DB {
 		return null;
 	}
 
+	/**
+	 * Create a relation between two vertices with a relationship name
+	 * @param inNode
+	 * @param outNode
+	 * @param name
+	 * @return
+	 */
 	public Edge createRelation (Vertex inNode, Vertex outNode, String name){
 		return createRelation(inNode, outNode, name, null);
 	}
@@ -316,6 +328,13 @@ public class DB {
 		return false;
 	}
 
+	/**
+	 * Checks if a relationship has changed given a set of attributes. It can exclude from comparison those in the list
+	 * @param relation
+	 * @param attributes
+	 * @param excluded
+	 * @return
+	 */
 	public boolean relationHasChanged (Edge relation, HashMap<String, Object> attributes, String...excluded){
 		for (String key : attributes.keySet()){
 			if (!Arrays.asList(excluded).contains(key)){    	

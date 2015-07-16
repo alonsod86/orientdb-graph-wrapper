@@ -37,11 +37,11 @@ public class UnitTests {
 
     @Before
     public void initConfig() throws IOException {
-        this.config = new OrientConfiguration("in_memory",1,1,OrientConfiguration.DATABASE_MEMORY);
+        this.config = new OrientConfiguration("in_memory",1,1,"admin","admin", OrientConfiguration.DATABASE_MEMORY);
         //this.config = new OrientConfiguration("/dir/mydb", "my_schema", 1, 10, OrientConfiguration.DATABASE_LOCAL);
         //this.config = new OrientConfiguration("localhost","test",1,1,"root", "root", OrientConfiguration.DATABASE_REMOTE);
         g = new GraphInterface(this.config);
-
+        g.createDatabase("my_database");
     }
     
     @After
