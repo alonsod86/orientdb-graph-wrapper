@@ -162,7 +162,7 @@ public class GraphInterface {
     	if (this.activeConnectionUrl==null) this.activeConnectionUrl = getActiveServerUrl(this.config);
     	// ensure the existence of the database requested
         if (this.config.getDatabaseType().equals(OrientConfiguration.DATABASE_REMOTE)) {
-            OServerAdmin remoteServer = new OServerAdmin(this.config.getDatabaseType() + ":" + this.config.getUrl() + "/" + database);
+            OServerAdmin remoteServer = getOServer();
             if (this.config.getUsername()!=null && this.config.getPassword()!=null) {
                 remoteServer.connect(this.config.getUsername(), this.config.getPassword());
             }
@@ -172,7 +172,7 @@ public class GraphInterface {
             return exists;
         } else {
             // Create connection with database
-        	ODatabaseDocumentTx memoryServer = new ODatabaseDocumentTx(this.config.getDatabaseType() + ":" + this.config.getUrl() + "/" + database);
+        	ODatabaseDocumentTx memoryServer = new ODatabaseDocumentTx(this.config.getDatabaseType() + ":" + this.config.getUrls()[0] + "/" + database);
             boolean exists = memoryServer.exists();
             memoryServer.close();
             return exists;
