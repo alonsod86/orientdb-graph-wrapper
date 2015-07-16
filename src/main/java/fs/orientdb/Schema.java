@@ -127,7 +127,7 @@ public class Schema {
 	 * @param overWrite
 	 * @return
 	 */
-	public Vertex createNode(Pk pk, HashMap<String, Object> attributes, boolean overWrite) {
+	public Vertex createNode(Pk pk, HashMap<String, ?> attributes, boolean overWrite) {
 		try {
 			Vertex node = this.existNode(pk.key, pk.value);
 			if (node == null){
@@ -155,7 +155,7 @@ public class Schema {
 	 * @param attributes
 	 * @return
 	 */
-	public Vertex createNode(Pk pk, HashMap<String, Object> attributes) {
+	public Vertex createNode(Pk pk, HashMap<String, ?> attributes) {
 		return createNode(pk, attributes, false);
 	}
 
@@ -173,7 +173,7 @@ public class Schema {
 	 * @param node
 	 * @param attributes
 	 */
-	public void updateNode(Vertex node, HashMap<String, Object> attributes){
+	public void updateNode(Vertex node, HashMap<String, ?> attributes){
 		this.updateNode(node, attributes, false);
 	}
 
@@ -182,7 +182,7 @@ public class Schema {
 	 * @param node
 	 * @param attributes
 	 */
-	public void updateNode(Vertex node, HashMap<String, Object> attributes, boolean clearIt){
+	public void updateNode(Vertex node, HashMap<String, ?> attributes, boolean clearIt){
 		try {
 			if (node==null) throw new Exception("Vertex to update can not be null");
 			if (clearIt){

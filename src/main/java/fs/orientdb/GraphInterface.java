@@ -153,6 +153,33 @@ public class GraphInterface {
 	}
 
 	/**
+     * Returns if the specified database exists on the current server instance
+     * @param database
+     * @return
+     * @throws IOException
+     */
+    public boolean existsDatabase(String database) throws IOException {
+    	if (this.activeConnectionUrl==null) this.activeConnectionUrl = getActiveServerUrl(this.config);
+    	// ensure the existence of the database requested
+        if (this.config.getDatabaseType().equals(OrientConfiguration.DATABASE_REMOTE)) {
+            OServerAdmin remoteServer = new OServerAdmin(this.config.getDatabaseType() + ":" + this.config.getUrl() + "/" + database);
+            if (this.config.getUsername()!=null && this.config.getPassword()!=null) {
+                remoteServer.connect(this.config.getUsername(), this.config.getPassword());
+            }
+            // If the given schema does not exist, create it
+            boolean exists = remoteServer.existsDatabase("plocal");
+            remoteServer.close();
+            return exists;
+        } else {
+            // Create connection with database
+        	ODatabaseDocumentTx memoryServer = new ODatabaseDocumentTx(this.config.getDatabaseType() + ":" + this.config.getUrl() + "/" + database);
+            boolean exists = memoryServer.exists();
+            memoryServer.close();
+            return exists;
+        }
+    }
+
+	/**
 	 * Returns an instance to a remote or local instance of OrientDB admin server
 	 * @return
 	 * @throws IOException
@@ -252,6 +279,5 @@ public class GraphInterface {
 			}
 		}
 	}
-
 }
 

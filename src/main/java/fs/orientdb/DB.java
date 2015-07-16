@@ -49,6 +49,7 @@ public class DB {
 	 * @param transactional
 	 */
 	public DB(OrientGraphFactory factory, boolean transactional) {
+		this.factory = factory;
 		if (transactional) {
 			this.txGraph = factory.getTx();
 			this.graphDB = this.txGraph;
@@ -248,6 +249,16 @@ public class DB {
 		}
 
 	}
+	
+	/**
+	 * Return a node with hte pk of the passed class
+	 * @param className
+	 * @param pkValue
+	 * @return
+	 */
+	public Vertex existNode(String pkValue, String pkName){
+		return existNode("V", pkValue, pkName);
+	}
 
 	/**
 	 * Search for a relation between two nodes and with a given name. If doesn't exist, may create it
@@ -258,7 +269,7 @@ public class DB {
 	 * @param attributes the attributes of the relation.
 	 * @return
 	 */
-	public Edge existRelation (Vertex inNode, Vertex outNode, String name, boolean createIt, HashMap<String, Object> attributes){
+	public Edge existRelation (Vertex inNode, Vertex outNode, String name, boolean createIt, HashMap<String, ?> attributes){
 		try {
 			OCommandSQL sql = new OCommandSQL("SELECT * FROM " + name + " WHERE out=\"" + outNode.getId() + "\" AND in=\"" + inNode.getId() + "\"");
 			OrientDynaElementIterable lEdges = this.graphDB.command(sql).execute();
@@ -283,7 +294,7 @@ public class DB {
 	 * @param attributes
 	 * @return The edge representing the relation created. Null if can't create it.
 	 */
-	public Edge createRelation (Vertex inNode, Vertex outNode, String name, HashMap<String, Object> attributes){
+	public Edge createRelation (Vertex inNode, Vertex outNode, String name, HashMap<String, ?> attributes){
 		try{
 			Edge edge = outNode.addEdge(name, inNode);
 			//edge.setProperty("name", name);
@@ -316,7 +327,7 @@ public class DB {
 	 * @param attributes
 	 * @return
 	 */
-	public boolean relationHasChanged (Edge relation, HashMap<String, Object> attributes){
+	public boolean relationHasChanged (Edge relation, HashMap<String, ?> attributes){
 		for (String key : attributes.keySet()){
 			String prop = relation.getProperty(key);
 			if (prop == null){
@@ -335,7 +346,7 @@ public class DB {
 	 * @param excluded
 	 * @return
 	 */
-	public boolean relationHasChanged (Edge relation, HashMap<String, Object> attributes, String...excluded){
+	public boolean relationHasChanged (Edge relation, HashMap<String, ?> attributes, String...excluded){
 		for (String key : attributes.keySet()){
 			if (!Arrays.asList(excluded).contains(key)){    	
 				String prop = relation.getProperty(key).toString();
@@ -354,7 +365,7 @@ public class DB {
 	 * @param relation
 	 * @param attributes
 	 */
-	public Edge relationUpdate (Edge relation, HashMap<String, Object> attributes){
+	public Edge relationUpdate (Edge relation, HashMap<String, ?> attributes){
 		return relationUpdate(relation, attributes, false);
 	}
 
@@ -364,7 +375,7 @@ public class DB {
 	 * @param attributes
 	 * @param clearIt
 	 */
-	public Edge relationUpdate (Edge relation, HashMap<String, Object> attributes, boolean clearIt){
+	public Edge relationUpdate (Edge relation, HashMap<String, ?> attributes, boolean clearIt){
 		try {
 			if (clearIt){
 				for (String key : relation.getPropertyKeys()){
