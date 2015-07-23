@@ -13,6 +13,7 @@ import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientDynaElementIterable;
+import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 import fs.orientdb.DB;
 import fs.orientdb.GraphInterface;
@@ -30,7 +31,7 @@ public class UnitTests {
     private OrientConfiguration config;
     private GraphInterface g;
 
-    private String TEST_CLASS = "test";
+    private String TEST_CLASS = "testClazz";
     private String TEST_INDEX = "index";
     private String TEST_PKEY = "pkey";
     private String TEST_RELATION = "relation";
@@ -251,5 +252,25 @@ public class UnitTests {
     
     public void testConflictStrategy() {
     	// TODO: check creation of database with different conflict strategies
+    }
+    
+    @Test
+    public void testUpsert() throws Exception {
+    	DB db = g.getOFactory("my_database").getDB();
+    	db.createClass(TEST_CLASS, TEST_PKEY);
+    	
+    	Schema sc = db.getSchema(TEST_CLASS);
+    	HashMap<String, Object> attributes = new HashMap<String, Object>();
+        attributes.put("attrib1", "val1");
+    	OrientVertex empty = (OrientVertex) sc.upsertNode(new Pk(TEST_PKEY, 1), attributes);
+    	// no node existed before this
+    	Assert.assertTrue(empty.getRecord().fields()==0);
+    	// Add a new field
+    	attributes.put("attrib2", 6);
+    	OrientVertex nonEmpty = (OrientVertex) sc.upsertNode(new Pk(TEST_PKEY, 1), attributes);
+    	Assert.assertTrue(nonEmpty.getRecord().fields()==2);
+    	// Check that upserted node has in fact 3 fields (pk plus the others)
+    	Vertex v = sc.existNode(new Pk(TEST_PKEY, 1));
+    	Assert.assertTrue(v.getPropertyKeys().size()==3);
     }
 }

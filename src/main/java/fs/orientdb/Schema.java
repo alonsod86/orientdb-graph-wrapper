@@ -1,5 +1,6 @@
 package fs.orientdb;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -7,16 +8,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.orientechnologies.orient.core.index.OIndex;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
+import com.orientechnologies.orient.core.sql.OCommandSQL;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
-import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
+import com.tinkerpop.blueprints.impls.orient.OrientDynaElementIterable;
 import com.tinkerpop.blueprints.impls.orient.OrientVertexType;
 
 /**
@@ -29,11 +34,13 @@ public class Schema {
 	// Schema name
 	private String className;
 	// Instance to parent graph database
-	private OrientBaseGraph graphDB;
-
-	public Schema(String schema, OrientBaseGraph db) {
+	private DB db;
+	// JSON serializer
+	private ObjectMapper json = new ObjectMapper();
+	
+	public Schema(String schema, DB db) {
 		this.className = schema;
-		this.graphDB = db;
+		this.db = db;
 	}
 
 	/**
@@ -42,7 +49,8 @@ public class Schema {
 	 */
 	public Vertex existNode(String key, Object value) {
 		try{
-			Iterable<Vertex> vertices = this.graphDB.getVertices(key, value);
+			Iterable<Vertex> vertices = this.db.getTinkerpopInstance().getVertices(key, value);
+			
 			if (vertices!=null) {
 				Iterator<Vertex> it = vertices.iterator();
 				if (it!=null && it.hasNext()) {
@@ -51,7 +59,7 @@ public class Schema {
 			}
 			return null;
 		} catch (Exception e) {
-			log.error("Could not check existence of node {} in database {} and class {}. Reason is {}", key + ":" + value.toString(), getDatabaseName(), className);
+			log.error("Could not check existence of node {} in database {} and class {}. Reason is {}", key + ":" + value.toString(), getDatabaseName(), className, e.getMessage());
 			return null;
 		}
 	}
@@ -71,7 +79,7 @@ public class Schema {
 	 * @param newAttributes
 	 * @return
 	 */
-	public boolean nodeHasChanged(Vertex node, HashMap<String, Object> newAttributes) {
+	public boolean nodeHasChanged(Vertex node, HashMap<String, ?> newAttributes) {
 		try {
 			for (String key : newAttributes.keySet()) {        	
 				if (newAttributes.get(key) != null){
@@ -97,7 +105,7 @@ public class Schema {
 	 * @param excluded
 	 * @return
 	 */
-	public boolean nodeHasChanged(Vertex node, HashMap<String, Object> newAttributes, String... excluded) {
+	public boolean nodeHasChanged(Vertex node, HashMap<String, ?> newAttributes, String... excluded) {
 		try {
 			for (String key : newAttributes.keySet()) {
 				if (!Arrays.asList(excluded).contains(key)){    			     		 
@@ -131,7 +139,7 @@ public class Schema {
 		try {
 			Vertex node = this.existNode(pk.key, pk.value);
 			if (node == null){
-				node = this.graphDB.addVertex("class:" + className);
+				node = this.db.getTinkerpopInstance().addVertex("class:" + className);
 				node.setProperty(pk.key, pk.value);
 
 				if (attributes!=null) {
@@ -166,6 +174,32 @@ public class Schema {
 	 */
 	public Vertex createNode(Pk pk) {
 		return createNode(pk, null, false);
+	}
+	
+	/**
+	 * Updates an existing node or creates a new one if does not exist, returning the old value of the node updated (or empty if it didn't exists(¡)
+	 * @param pk
+	 * @param attributes
+	 * @return
+	 * @throws IOException 
+	 * @throws JsonMappingException 
+	 * @throws JsonGenerationException 
+	 */
+	public Vertex upsertNode(Pk pk, HashMap<String, Object> attributes) throws Exception {
+		// add pk to attributes (the pk must be upserted too)
+		attributes.put(pk.key, pk.value);
+		// add pk to the attributes hashmap
+		String mapAsJson = json.writeValueAsString(attributes);
+		String valueAsType = "";
+		if (pk.value instanceof Number) {
+			valueAsType = pk.value.toString();
+		} else {
+			valueAsType = "\"" + pk.value.toString() + "\"";
+		}
+		String query = "UPDATE " + className + " MERGE " + mapAsJson + " UPSERT RETURN BEFORE WHERE " + pk.key + "=" + valueAsType;
+		OCommandSQL sql = new OCommandSQL(query);
+		OrientDynaElementIterable result = this.db.getTinkerpopInstance().command(sql).execute();
+		return (Vertex) result.iterator().next();
 	}
 
 	/**
@@ -275,9 +309,9 @@ public class Schema {
 	 */
 	public OIndex<?> createIndex(OType type, String field) {
 		try {
-			OrientVertexType vertexType = graphDB.getVertexType(className);
+			OrientVertexType vertexType = db.getTinkerpopInstance().getVertexType(className);
 			if (vertexType == null) {
-				vertexType = graphDB.createVertexType(className, "V");
+				vertexType = db.getTinkerpopInstance().createVertexType(className, "V");
 			}
 
 			vertexType.createProperty(field, type);
@@ -295,10 +329,10 @@ public class Schema {
 	 */
 	public Set<OIndex<?>> getIndexes() {
 		try {
-			OrientVertexType vertexType = graphDB.getVertexType(className);
+			OrientVertexType vertexType = db.getTinkerpopInstance().getVertexType(className);
 			return vertexType.getIndexes();
 		} catch (Exception e) {
-			log.error("Could get indexes for database {} and class {} on database {}. Reason is {}", this.graphDB.getRawGraph().getName(), className, getDatabaseName(), e.getMessage());
+			log.error("Could get indexes for database {} and class {} on database {}. Reason is {}", this.db.getTinkerpopInstance().getRawGraph().getName(), className, getDatabaseName(), e.getMessage());
 			return null;
 		}
 	}
@@ -309,7 +343,7 @@ public class Schema {
 	 */
 	private String getDatabaseName() {
 		try {
-			return this.graphDB.getRawGraph().getName();
+			return this.db.getTinkerpopInstance().getRawGraph().getName();
 		} catch (Exception e) {
 			return "ERROR_GET_DATABASE_NAME";
 		}

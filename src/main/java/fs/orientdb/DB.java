@@ -65,7 +65,7 @@ public class DB {
 	 * @return
 	 */
 	public Schema getSchema(String Schema) {
-		return new Schema(Schema, graphDB);
+		return new Schema(Schema, this);
 	}
 
 	/**
@@ -88,7 +88,7 @@ public class DB {
 	 */
 	public void begin() {
 		if (isTransactional()) {
-			this.graphDB.commit();
+			this.txGraph.begin();
 		} else {
 			log.warn("Commit is not necessary with a non transactional connection");
 		}
@@ -99,7 +99,7 @@ public class DB {
 	 */
 	public void commit() {
 		if (isTransactional()) {
-			this.graphDB.commit();
+			this.txGraph.commit();
 		} else {
 			log.warn("Commit is not necessary with a non transactional connection");
 		}
@@ -110,7 +110,7 @@ public class DB {
 	 */
 	public void rollback() {
 		if (isTransactional()){
-			this.graphDB.rollback();
+			this.txGraph.rollback();
 		} else {
 			log.warn("Rollback won't work on a non transactional connection");
 		}
@@ -235,7 +235,7 @@ public class DB {
 	 * @param pkValue
 	 * @return
 	 */
-	public Vertex existNode(String className, String pkValue, String pkName){
+	public Vertex existNode(String className, String pkValue, Object pkName){
 		try {
 			OrientDynaElementIterable lVertices = this.executeQuery("SELECT FROM " + className + " WHERE " + pkName + " LIKE '" + pkValue + "'");
 			Vertex v = null;
@@ -256,8 +256,17 @@ public class DB {
 	 * @param pkValue
 	 * @return
 	 */
-	public Vertex existNode(String pkValue, String pkName){
+	public Vertex existNode(String pkValue, Object pkName){
 		return existNode("V", pkValue, pkName);
+	}
+	
+	/**
+	 * Checks the existence of a node by its Pk
+	 * @param pk
+	 * @return
+	 */
+	public Vertex existNode(Pk pk) {
+		return existNode(pk.key, pk.value);
 	}
 
 	/**
@@ -274,7 +283,7 @@ public class DB {
 			OCommandSQL sql = new OCommandSQL("SELECT * FROM " + name + " WHERE out=\"" + outNode.getId() + "\" AND in=\"" + inNode.getId() + "\"");
 			OrientDynaElementIterable lEdges = this.graphDB.command(sql).execute();
 			Iterator<Object> itr = lEdges.iterator();
-			while(itr.hasNext()) {
+			if(itr.hasNext()) {
 				return (Edge) itr.next();
 			}
 			if (createIt){
@@ -449,5 +458,9 @@ public class DB {
 		} catch (Exception e) {
 			return "ERROR_GET_DATABASE_NAME";
 		}
+	}
+	
+	public OrientGraphFactory getFactory() {
+		return factory;
 	}
 }
