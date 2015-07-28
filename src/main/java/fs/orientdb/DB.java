@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +43,9 @@ public class DB {
 
 	// Instance to the factory used to create instances to database
 	private OrientGraphFactory factory;
+
+	// JSON serializer
+	private ObjectMapper json = new ObjectMapper();
 
 	/**
 	 * Create an active connection using the factory that contains all the information necessary to connect to an Orientdb database
@@ -249,7 +253,7 @@ public class DB {
 		}
 
 	}
-	
+
 	/**
 	 * Return a node with hte pk of the passed class
 	 * @param className
@@ -259,7 +263,7 @@ public class DB {
 	public Vertex existNode(String pkValue, Object pkName){
 		return existNode("V", pkValue, pkName);
 	}
-	
+
 	/**
 	 * Checks the existence of a node by its Pk
 	 * @param pk
@@ -290,7 +294,30 @@ public class DB {
 				return createRelation(inNode, outNode, name, attributes);
 			}
 		} catch (Exception e) {
-			log.error("Could not check existence of relationship {} - {} - {} on database {}. Reason is {}", inNode.getId(), name, outNode.getId(), getDatabaseName(), e.getMessage());
+			log.error("Could not check existence of relationship {} - {} - {} on database {}. Reason is {}", outNode.getId(), name, inNode.getId(), getDatabaseName(), e.getMessage());
+		}
+		return null;
+	}
+
+	/**
+	 * Search for a relation between two nodes and with a given name. If doesn't exist, may create it
+	 * @param inNode
+	 * @param outNode
+	 * @param name
+	 * @param createIt
+	 * @param attributes the attributes of the relation.
+	 * @return
+	 */
+	public Edge existRelation (Pk in, Pk out, String name, HashMap<String, ?> attributes){
+		try {
+			OCommandSQL sql = new OCommandSQL("SELECT FROM " + name + " WHERE out IN (SELECT FROM V WHERE " + out.toQuery() + ") AND in IN (SELECT FROM V WHERE " + in.toQuery() + ")");
+			OrientDynaElementIterable lEdges = this.graphDB.command(sql).execute();
+			Iterator<Object> itr = lEdges.iterator();
+			if(itr.hasNext()) {
+				return (Edge) itr.next();
+			}
+		} catch (Exception e) {
+			log.error("Could not check existence of relationship {} - {} - {} on database {}. Reason is {}", out, name, in, getDatabaseName(), e.getMessage());
 		}
 		return null;
 	}
@@ -317,6 +344,16 @@ public class DB {
 			log.error("Could not create relationship {} - {} - {} on database. Reason is {}", inNode.getId(), name, outNode.getId(), getDatabaseName(), e.getMessage());
 		}
 		return null;
+	}
+
+	public Edge createRelation (Pk in, Pk out, String name, HashMap<String, ?> attributes) throws Exception {
+		// add pk to the attributes hashmap
+		String mapAsJson = json.writeValueAsString(attributes);
+
+		String query = "CREATE EDGE " + name + " FROM (SELECT FROM V WHERE " + out.toQuery() + ") TO (SELECT FROM V WHERE " + in.toQuery() + ") CONTENT " + mapAsJson + " RETRY 3 WAIT 1" ;
+		OCommandSQL sql = new OCommandSQL(query);
+		OrientDynaElementIterable result = getTinkerpopInstance().command(sql).execute();
+		return (Edge) result.iterator().next();
 	}
 
 	/**
@@ -403,6 +440,20 @@ public class DB {
 	}
 
 	/**
+	 * Drops a relationship using Pks of the nodes and the relationship name
+	 * @param in
+	 * @param out
+	 * @param relationClass
+	 * @return
+	 */
+	public int relationDrop (Pk in, Pk out, String relationClass) {
+		String query = "DELETE EDGE " + relationClass + " FROM (SELECT FROM V WHERE " + out.toQuery() + ") TO (SELECT FROM V WHERE " + in.toQuery() + ")" ;
+		OCommandSQL sql = new OCommandSQL(query);
+		Integer removed = getTinkerpopInstance().command(sql).execute();
+		return removed;
+	}
+
+	/**
 	 * Provides a direct Query Executor using SQL
 	 * @param sqlQuery
 	 * @return
@@ -431,7 +482,7 @@ public class DB {
 	 * @param rid
 	 * @return
 	 */
-	public Vertex getNode (String rid){
+	public Vertex getNode(String rid){
 		try {
 			return graphDB.getVertex(rid);
 		} catch (Exception e) {
@@ -459,7 +510,7 @@ public class DB {
 			return "ERROR_GET_DATABASE_NAME";
 		}
 	}
-	
+
 	public OrientGraphFactory getFactory() {
 		return factory;
 	}

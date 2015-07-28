@@ -16,4 +16,12 @@ public class Pk {
     public String toString() {
     	return key + ": " + value;
     }
+    
+    public String toQuery() {
+    	if (value instanceof Number) {
+    		return key + "=" + value;
+    	} else {
+    		return key + "=\"" + value + "\"";
+    	}
+    }
 }

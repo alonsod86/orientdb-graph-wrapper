@@ -99,7 +99,7 @@ public class GraphInterface {
 			OServerAdmin remoteServer = getOServer();
 			// If the given schema does not exist, create it
 			if (!remoteServer.existsDatabase("plocal")) {
-				remoteServer.createDatabase("graph", "plocal");
+				remoteServer.createDatabase(database, "graph", "plocal");
 			}
 			remoteServer.close();
 			finalURL = this.activeConnectionUrl;

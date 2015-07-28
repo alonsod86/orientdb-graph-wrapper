@@ -307,7 +307,7 @@ public class Schema {
 	 * @param field
 	 * @return 
 	 */
-	public OIndex<?> createIndex(OType type, String field) {
+	public OIndex<?> createUniqueIndex(OType type, String field) {
 		try {
 			OrientVertexType vertexType = db.getTinkerpopInstance().getVertexType(className);
 			if (vertexType == null) {
@@ -321,8 +321,7 @@ public class Schema {
 			return null;
 		}
 	}
-
-
+	
 	/**
 	 * Returns the list of indices for the current orientdb class
 	 * @return
