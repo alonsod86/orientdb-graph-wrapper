@@ -134,7 +134,8 @@ public class GraphInterface {
 
 		// ensure the existence of the database requested
 		if (this.config.getDatabaseType().equals(OrientConfiguration.DATABASE_REMOTE)) {
-			OServerAdmin remoteServer = getOServer();
+			OServerAdmin remoteServer = getOServer(database);
+			
 			// If the given schema does not exist, create it
 			if (remoteServer.existsDatabase("plocal")) {
 				remoteServer.dropDatabase(this.activeConnectionUrl);
@@ -188,6 +189,35 @@ public class GraphInterface {
 		if (this.activeConnectionUrl==null) this.activeConnectionUrl = getActiveServerUrl(this.config);
 
 		OServerAdmin remoteServer = new OServerAdmin(this.config.getDatabaseType() + ":" + this.activeConnectionUrl);
+		if (this.config.getUsername()!=null && this.config.getPassword()!=null) {
+			try {
+				// try to connect. If failure check other urls in cluster
+				remoteServer.connect(this.config.getUsername(), this.config.getPassword());
+			} catch (OIOException oe) {
+				// retry connection just in case one shard is down
+				String url = getActiveServerUrl(this.config);
+				remoteServer = new OServerAdmin(this.config.getDatabaseType() + ":" + url);
+				try {
+					remoteServer.connect(this.config.getUsername(), this.config.getPassword());
+					this.activeConnectionUrl = url;
+				} catch (Exception e) {
+					log.error("Could not get active connection after {} retries. Aborting", this.config.getUrls().length);
+				}
+			}
+		}
+
+		return remoteServer;
+	}
+	
+	/**
+	 * Returns an instance to a remote or local instance of OrientDB admin server specifying the database name
+	 * @return
+	 * @throws IOException
+	 */
+	public OServerAdmin getOServer(String database) throws IOException {
+		if (this.activeConnectionUrl==null) this.activeConnectionUrl = getActiveServerUrl(this.config);
+
+		OServerAdmin remoteServer = new OServerAdmin(this.config.getDatabaseType() + ":" + this.activeConnectionUrl + "/" + database);
 		if (this.config.getUsername()!=null && this.config.getPassword()!=null) {
 			try {
 				// try to connect. If failure check other urls in cluster

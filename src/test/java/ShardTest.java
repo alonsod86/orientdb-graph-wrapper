@@ -12,6 +12,7 @@ import fs.orientdb.OrientConfiguration;
 public class ShardTest {
 
 	@Test
+	@Ignore
 	public void insertTest() throws Exception {
 		OrientConfiguration config = new OrientConfiguration("localhost:2424;localhost:2425",1,1,"root", "toor", OrientConfiguration.DATABASE_REMOTE);
 		GraphInterface g = new GraphInterface(config);
