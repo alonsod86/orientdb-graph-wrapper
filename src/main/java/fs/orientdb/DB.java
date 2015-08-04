@@ -239,16 +239,16 @@ public class DB {
 	 * @param pkValue
 	 * @return
 	 */
-	public Vertex existNode(String className, String pkValue, Object pkName){
+	public Vertex existNode(String className, String key, Object value){
 		try {
-			OrientDynaElementIterable lVertices = this.executeQuery("SELECT FROM " + className + " WHERE " + pkName + " LIKE '" + pkValue + "'");
+			OrientDynaElementIterable lVertices = this.executeQuery("SELECT FROM " + className + " WHERE " + key + " LIKE '" + value + "'");
 			Vertex v = null;
 			for (Object vertex : lVertices){
 				v = (Vertex) vertex;				
 			}
 			return v;
 		} catch (Exception e) {
-			log.error("Could not check if node {} exists on database {}. Reason is {}", pkName+":"+pkValue, getDatabaseName(), e.getMessage());
+			log.error("Could not check if node {} exists on database {}. Reason is {}", key+":"+value, getDatabaseName(), e.getMessage());
 			return null;
 		}
 
@@ -260,8 +260,8 @@ public class DB {
 	 * @param pkValue
 	 * @return
 	 */
-	public Vertex existNode(String pkValue, Object pkName){
-		return existNode("V", pkValue, pkName);
+	public Vertex existNode(String key, Object value){
+		return existNode("V", key, value);
 	}
 
 	/**
