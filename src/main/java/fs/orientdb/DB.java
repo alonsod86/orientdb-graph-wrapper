@@ -15,6 +15,7 @@ import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.sql.OCommandSQL;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
+import com.orientechnologies.orient.core.storage.ORecordDuplicatedException;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
@@ -332,14 +333,22 @@ public class DB {
 	 */
 	public Edge createRelation (Vertex inNode, Vertex outNode, String name, HashMap<String, ?> attributes){
 		try{
-			Edge edge = outNode.addEdge(name, inNode);
-			//edge.setProperty("name", name);
-			if (attributes != null){
-				for (String key : attributes.keySet()){
-					edge.setProperty(key, attributes.get(key));
-				}
+			String mapAsJson = null;
+			String query = null;
+			if (attributes!=null) {
+				// add pk to the attributes hashmap
+				mapAsJson = json.writeValueAsString(attributes);
+				query = "CREATE EDGE " + name + " FROM "+outNode.getId()+" TO "+inNode.getId() +" CONTENT " + mapAsJson + " RETRY 3 WAIT 1";
+			} else {
+				query = "CREATE EDGE " + name + " FROM "+outNode.getId()+" TO "+inNode.getId() + " RETRY 3 WAIT 1";
 			}
-			return edge;
+			
+			OCommandSQL sql = new OCommandSQL(query);
+			OrientDynaElementIterable result = getTinkerpopInstance().command(sql).execute();
+			return (Edge) result.iterator().next();
+
+		} catch (ORecordDuplicatedException e) {
+			log.error("Could not create relationship {} - {} - {} on database. Reason is {}", inNode.getId(), name, outNode.getId(), getDatabaseName(), "DUPLICATED EDGE");
 		} catch (Exception e) {
 			log.error("Could not create relationship {} - {} - {} on database. Reason is {}", inNode.getId(), name, outNode.getId(), getDatabaseName(), e.getMessage());
 		}

@@ -42,7 +42,10 @@ public class UnitTests {
 		//this.config = new OrientConfiguration("/dir/mydb", "my_schema", 1, 10, OrientConfiguration.DATABASE_LOCAL);
 		//this.config = new OrientConfiguration("localhost","test",1,1,"root", "root", OrientConfiguration.DATABASE_REMOTE);
 		g = new GraphInterface(this.config);
-		g.createDatabase("my_database");
+		DB db = g.createDatabase("my_database");
+		db.existClass(TEST_CLASS, TEST_PKEY, true);
+		db.existRelationClass(TEST_RELATION, true);
+		db.existRelationClass(TEST_RELATION+"_2", true);
 	}
 
 	@After
@@ -74,8 +77,8 @@ public class UnitTests {
 	@Test
 	public void testExistClass() throws IOException {
 		DB db = g.getOFactory("my_database").getDB();
-		Assert.assertTrue(!db.existClass(TEST_CLASS));
-		Assert.assertTrue(!db.existClass(TEST_CLASS, TEST_PKEY));
+		Assert.assertTrue(!db.existClass(TEST_CLASS+"_3"));
+		Assert.assertTrue(db.existClass(TEST_CLASS, TEST_PKEY));
 		Assert.assertTrue(db.existClass(TEST_CLASS, TEST_PKEY, true));
 	}
 
@@ -135,7 +138,7 @@ public class UnitTests {
 	@Test
 	public void testExistRelationClass() throws IOException {
 		DB sc = g.getOFactory("my_database").getDB();
-		Assert.assertTrue(!sc.existRelationClass(TEST_RELATION));
+		Assert.assertTrue(!sc.existRelationClass(TEST_RELATION+"_3"));
 		Assert.assertTrue(sc.existRelationClass(TEST_RELATION, true));
 	}
 
