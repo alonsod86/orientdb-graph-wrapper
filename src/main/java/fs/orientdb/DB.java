@@ -24,6 +24,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientEdgeType;
 import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphFactory;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
+import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 import com.tinkerpop.blueprints.impls.orient.OrientVertexType;
 
 /**
@@ -273,6 +274,30 @@ public class DB {
 	public Vertex existNode(Pk pk) {
 		return existNode(pk.key, pk.value);
 	}
+	
+	/**
+	 * Method to find nodes in the database using an index
+	 * @return boolean. If the nodes exists or not.
+	 */
+	public Vertex existNodeIndex(Object value, String index) {
+		try {
+			String val = null;
+			if (value instanceof String) {
+				val = "\"" + value + "\"";
+			} else {
+				val = value.toString();
+			}
+			OrientDynaElementIterable vertex = executeQuery("SELECT rid as node FROM index:" + index + " WHERE key = " + val);
+			OrientVertex v = (OrientVertex) vertex.iterator().next();
+			if (v!=null) {
+				return v.getProperty("node");
+			}
+		} catch (Exception e) {
+			log.error("Could not check existence of node in database {}. Reason is {}", getDatabaseName(), e.getMessage());
+			return null;
+		}
+		return null;
+	}
 
 	/**
 	 * Search for a relation between two nodes and with a given name. If doesn't exist, may create it
@@ -342,7 +367,7 @@ public class DB {
 			} else {
 				query = "CREATE EDGE " + name + " FROM "+outNode.getId()+" TO "+inNode.getId() + " RETRY 3 WAIT 1";
 			}
-			
+
 			OCommandSQL sql = new OCommandSQL(query);
 			OrientDynaElementIterable result = getTinkerpopInstance().command(sql).execute();
 			return (Edge) result.iterator().next();
@@ -457,6 +482,20 @@ public class DB {
 	 */
 	public int relationDrop (Pk in, Pk out, String relationClass) {
 		String query = "DELETE EDGE " + relationClass + " FROM (SELECT FROM V WHERE " + out.toQuery() + ") TO (SELECT FROM V WHERE " + in.toQuery() + ")" ;
+		OCommandSQL sql = new OCommandSQL(query);
+		Integer removed = getTinkerpopInstance().command(sql).execute();
+		return removed;
+	}
+
+	/**
+	 * Drops a relationship using Pks of the nodes and the relationship name
+	 * @param in
+	 * @param out
+	 * @param relationClass
+	 * @return
+	 */
+	public int relationDrop (Vertex in, Vertex out, String relationClass) {
+		String query = "DELETE EDGE " + relationClass + " FROM "+out.getId()+" TO " + in.getId();
 		OCommandSQL sql = new OCommandSQL(query);
 		Integer removed = getTinkerpopInstance().command(sql).execute();
 		return removed;

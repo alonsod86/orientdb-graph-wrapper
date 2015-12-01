@@ -2,7 +2,6 @@ package fs.orientdb;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -63,6 +62,14 @@ public class Schema {
 			return null;
 		}
 	}
+	
+	/**
+	 * Method to find nodes in the database using an index
+	 * @return boolean. If the nodes exists or not.
+	 */
+	public Vertex existNodeIndex(Object value, String index) {
+		return this.db.existNodeIndex(value, index);
+	}
 
 	/**
 	 * Checks the existence of a node by its Pk
@@ -105,10 +112,10 @@ public class Schema {
 	 * @param excluded
 	 * @return
 	 */
-	public boolean nodeHasChanged(Vertex node, HashMap<String, ?> newAttributes, String... excluded) {
+	public boolean nodeHasChanged(Vertex node, HashMap<String, ?> newAttributes, List<String>excluded) {
 		try {
 			for (String key : newAttributes.keySet()) {
-				if (!Arrays.asList(excluded).contains(key)){    			     		 
+				if (!excluded.contains(key)){    			     		 
 					if (newAttributes.get(key) != null){
 						Object prop = node.getProperty(key);
 						if (prop == null) {
